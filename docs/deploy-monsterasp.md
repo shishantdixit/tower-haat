@@ -101,10 +101,12 @@ never rolled back automatically, so releases only ever add columns or tables.
 
 **From your Windows PC instead of GitHub:** run `publish.cmd` (or `publish.cmd production`) from
 the repository folder. It does the same steps: tests, app build, `dotnet publish`, Web Deploy with
-the same rules (keeps `App_Data` and the settings file), then the `/api/health` check. The first
-run writes `publish.staging.local.cmd` (or `publish.production.local.cmd`): fill in the Web Deploy
-URL, site, user name, password and site URL from the panel. These files are gitignored; never
-commit them. Options: `/skip-tests`, and `/self-contained` if the site showed HTTP 500.31.
+the same rules (keeps `App_Data` and the settings file), then the `/api/health` check. Download
+the site's **Web Deploy publish profile** from the panel and save it next to `publish.cmd` as
+`staging.PublishSettings` or `production.PublishSettings`; the script reads the server, site, user,
+password and site address from it. (Without a profile, the first run writes
+`publish.<env>.local.cmd` to fill in by hand.) Both hold the password, are gitignored and must
+never be committed. Options: `/skip-tests`, and `/self-contained` if the site showed HTTP 500.31.
 Production asks you to type `yes` first. Needs the .NET SDK, Node.js and
 [Web Deploy](https://www.iis.net/downloads/microsoft/web-deploy) (`choco install webdeploy`).
 

@@ -25,22 +25,47 @@ goto args
 
 if /i "%TARGET%"=="production" (set "ENV_NAME=Production") else (set "ENV_NAME=Staging")
 
+rem Deploy settings: the site's Web Deploy publish profile from the MonsterASP panel saved as
+rem staging.PublishSettings / production.PublishSettings, or else publish.<target>.local.cmd.
+rem Both hold the password and are gitignored.
+set "PROFILE=%TARGET%.PublishSettings"
 set "SETTINGS=publish.%TARGET%.local.cmd"
-if not exist "%SETTINGS%" (
-  > "%SETTINGS%" (
-    echo @rem Web Deploy settings for %TARGET%. Never commit this file.
-    echo @rem From the MonsterASP panel: the site's Web Deploy / publish settings.
-    echo @rem Write %%%% for a %% sign in the password.
-    echo set "WEBDEPLOY_URL=https://SERVER:8172/msdeploy.axd?site=SITE"
-    echo set "WEBDEPLOY_SITE=SITE"
-    echo set "WEBDEPLOY_USERNAME=USER"
-    echo set "WEBDEPLOY_PASSWORD=PASSWORD"
-    echo set "SITE_URL=https://staging.towerhaat.com"
-  )
-  echo Wrote %SETTINGS%. Fill in the Web Deploy details from the hosting panel, then run this again.
-  exit /b 1
+if exist "%PROFILE%" goto read_profile
+if exist "%SETTINGS%" goto read_settings
+> "%SETTINGS%" (
+  echo @rem Web Deploy settings for %TARGET%. Never commit this file.
+  echo @rem From the MonsterASP panel: the site's Web Deploy / publish settings.
+  echo @rem Write %%%% for a %% sign in the password.
+  echo set "WEBDEPLOY_URL=https://SERVER:8172/msdeploy.axd?site=SITE"
+  echo set "WEBDEPLOY_SITE=SITE"
+  echo set "WEBDEPLOY_USERNAME=USER"
+  echo set "WEBDEPLOY_PASSWORD=PASSWORD"
+  echo set "SITE_URL=https://staging.towerhaat.com"
 )
+echo No deploy settings for %TARGET%. Either save the site's Web Deploy publish profile from the
+echo MonsterASP panel here as %PROFILE%, or fill in %SETTINGS% (just written). Then run this again.
+exit /b 1
+
+:read_profile
+rem Turns the profile's MSDeploy entry into "set" lines (%% doubled so the password survives).
+set "PROFILE_VARS=%TEMP%\towerhaat-publish-%RANDOM%.cmd"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$p = ([xml](Get-Content -Raw -LiteralPath '%PROFILE%')).publishData.publishProfile | Where-Object { $_.publishMethod -eq 'MSDeploy' } | Select-Object -First 1;" ^
+  "if (-not $p) { exit 1 };" ^
+  "$server = ([string]$p.publishUrl) -replace '^https?://', '' -replace '[:/].*$', '';" ^
+  "$values = [ordered]@{ WEBDEPLOY_URL = 'https://' + $server + ':8172/msdeploy.axd?site=' + $p.msdeploySite; WEBDEPLOY_SITE = $p.msdeploySite; WEBDEPLOY_USERNAME = $p.userName; WEBDEPLOY_PASSWORD = $p.userPWD; SITE_URL = ([string]$p.destinationAppUrl).TrimEnd('/') };" ^
+  "$pct = [string][char]37; $q = [string][char]34;" ^
+  "$values.GetEnumerator() | ForEach-Object { 'set ' + $q + $_.Key + '=' + ([string]$_.Value).Replace($pct, $pct + $pct) + $q } | Set-Content -LiteralPath '%PROFILE_VARS%' -Encoding ASCII" ^
+  || (echo Could not read a Web Deploy profile from %PROFILE%. & exit /b 1)
+call "%PROFILE_VARS%"
+del "%PROFILE_VARS%"
+set "SETTINGS=%PROFILE%"
+goto settings_loaded
+
+:read_settings
 call "%SETTINGS%"
+
+:settings_loaded
 for %%V in (WEBDEPLOY_URL WEBDEPLOY_SITE WEBDEPLOY_USERNAME WEBDEPLOY_PASSWORD SITE_URL) do (
   if not defined %%V (
     echo %%V is not set in %SETTINGS%.

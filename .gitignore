@@ -33,4 +33,6 @@ Thumbs.db
 
 # Local deploy settings for publish.cmd (Web Deploy password)
 *.local.cmd
+*.PublishSettings
+*.publishsettings
 publish/
