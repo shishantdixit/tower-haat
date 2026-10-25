@@ -79,7 +79,9 @@ for %%V in (WEBDEPLOY_URL WEBDEPLOY_SITE WEBDEPLOY_USERNAME WEBDEPLOY_PASSWORD S
   )
 )
 if "%WEBDEPLOY_SITE%"=="SITE" (
-  echo Fill in %SETTINGS% first.
+  echo No deploy settings for %TARGET%: %SETTINGS% still has the placeholders.
+  echo Save the site's Web Deploy publish profile here as %TARGET%.PublishSettings,
+  echo or fill in %SETTINGS%. To deploy to production instead, run: publish.cmd production
   exit /b 1
 )
 
