@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Hosting;
 using TowerHaat.Application.Auth;
 using TowerHaat.Application.Residents;
 using TowerHaat.Application.Societies;
@@ -72,13 +73,23 @@ public sealed class AuthFlowTests(TowerHaatFactory factory) : IClassFixture<Towe
     }
 
     [Fact]
-    public async Task Code_is_never_returned_outside_development()
+    public async Task Code_is_shown_outside_production_as_a_stand_in_for_SMS()
     {
-        var client = factory.CreateHttpsClient();
+        var response = await RequestOtpAsync(factory.CreateHttpsClient(), "+919876533333");
 
-        var response = await RequestOtpAsync(client, "+919876533333");
+        Assert.Matches("^[0-9]{6}$", response.DevelopmentCode);
+    }
 
-        Assert.Null(response.DevelopmentCode);
+    [Fact]
+    public async Task Code_is_never_returned_in_production()
+    {
+        using var production = factory.WithWebHostBuilder(b => b.UseEnvironment("Production"));
+        var client = production.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+
+        var response = await client.PostAsJsonAsync("/api/auth/otp", new RequestOtpRequest("+919876533334"), _ct);
+        response.EnsureSuccessStatusCode();
+
+        Assert.Null((await response.Content.ReadFromJsonAsync<OtpRequestedResponse>(_ct))!.DevelopmentCode);
     }
 
     [Fact]

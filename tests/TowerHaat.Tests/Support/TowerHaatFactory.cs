@@ -23,6 +23,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
 
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
+    public string LogDirectory { get; } = Path.Combine(Path.GetTempPath(), "towerhaat-tests", Guid.NewGuid().ToString("N"));
+
     public CapturingSmsSender Sms { get; } = new();
 
     public InMemoryFileStorage Files { get; } = new();
@@ -43,6 +45,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
         builder.UseSetting("Auth:AdminPhones:1", SecondAdminPhone);
         builder.UseSetting("Jobs:Key", JobKey);
         builder.UseSetting("Jobs:RunInProcess", "false");
+        builder.UseSetting("Logs:Path", LogDirectory);
+        builder.UseSetting("Backups:Path", Path.Combine(LogDirectory, "backups"));
 
         builder.ConfigureTestServices(services =>
         {

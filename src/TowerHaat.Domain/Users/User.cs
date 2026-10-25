@@ -25,6 +25,9 @@ public class User : Entity
 
     public DateTime CreatedAt { get; private set; }
 
+    /// <summary>Set when the person deleted their account; the row stays because past orders point to it.</summary>
+    public DateTime? DeletedAt { get; private set; }
+
     public void Rename(string name) => Name = name;
 
     public void MakePlatformAdmin() => IsPlatformAdmin = true;
@@ -32,4 +35,16 @@ public class User : Entity
     public void Block() => IsBlocked = true;
 
     public void Unblock() => IsBlocked = false;
+
+    /// <summary>
+    /// Forgets the person: name and phone go (the phone is replaced so it can sign up again as new).
+    /// Orders keep their own copies of name, phone and flat, as the spec requires.
+    /// </summary>
+    public void Delete(string phonePlaceholder, DateTime now)
+    {
+        Phone = phonePlaceholder;
+        Name = null;
+        IsPlatformAdmin = false;
+        DeletedAt = now;
+    }
 }

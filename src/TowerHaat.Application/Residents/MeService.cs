@@ -1,7 +1,9 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Common;
 using TowerHaat.Application.Tenancy;
+using TowerHaat.Domain.Orders;
 using TowerHaat.Domain.Users;
 
 namespace TowerHaat.Application.Residents;
@@ -15,7 +17,7 @@ public sealed class MeService(IAppDbContext db, ISocietyScope scope, IAccessToke
 
     public async Task<MeResponse> GetAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken)
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null, cancellationToken)
             ?? throw new AppException(ErrorKind.Unauthorized, "Please sign in again.");
 
         return await ToResponseAsync(user, await LoadOwnProfileAsync(userId, cancellationToken), cancellationToken);
@@ -64,6 +66,40 @@ public sealed class MeService(IAppDbContext db, ISocietyScope scope, IAccessToke
 
         var (access, me) = await IssueAccessTokenAsync(user, cancellationToken);
         return new SaveProfileResponse(access.Token, access.ExpiresAt, me);
+    }
+
+    /// <summary>
+    /// The right to erase (DPDP): removes the profile, sessions, devices and codes, and anonymises the
+    /// account. Past orders keep their snapshots, so businesses' records stay correct.
+    /// </summary>
+    public async Task DeleteAccountAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null, cancellationToken)
+            ?? throw new AppException(ErrorKind.Unauthorized, "Please sign in again.");
+
+        if (await db.Businesses.IgnoreQueryFilters([TenancyFilter.Name]).AnyAsync(b => b.OwnerUserId == userId, cancellationToken))
+        {
+            throw new AppException(ErrorKind.Conflict, "You run a business on TowerHaat. Please ask the TowerHaat team to close it first.");
+        }
+
+        if (await db.Orders.AnyAsync(o => o.CustomerUserId == userId && OrderStatuses.Open.Contains(o.Status), cancellationToken))
+        {
+            throw new AppException(ErrorKind.Conflict, "You have orders in progress. Delete your account once they are delivered or cancelled.");
+        }
+
+        var profile = await LoadOwnProfileAsync(userId, cancellationToken);
+        if (profile is not null)
+        {
+            db.ResidentProfiles.Remove(profile);
+        }
+
+        db.RefreshTokens.RemoveRange(await db.RefreshTokens.Where(t => t.UserId == userId).ToListAsync(cancellationToken));
+        db.PushSubscriptions.RemoveRange(await db.PushSubscriptions.Where(s => s.UserId == userId).ToListAsync(cancellationToken));
+        db.OtpRequests.RemoveRange(await db.OtpRequests.Where(o => o.Phone == user.Phone).ToListAsync(cancellationToken));
+
+        // Not a phone number (no +91), unique, and within the column's 13 characters.
+        user.Delete("#" + Convert.ToHexString(RandomNumberGenerator.GetBytes(6)), time.GetUtcNow().UtcDateTime);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>Access tokens carry the user's society, so a new one is issued whenever it may change.</summary>

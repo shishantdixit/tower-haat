@@ -9,7 +9,9 @@ TestResults/
 appsettings.*.local.json
 *.local.json
 
-# Secrets
+# Secrets (server settings files are uploaded to the host, never committed)
+appsettings.Production.json
+appsettings.Staging.json
 .env
 *.pfx
 secrets.json

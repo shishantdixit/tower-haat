@@ -1,0 +1,114 @@
+name: Deploy
+
+# Manual: Actions → Deploy → Run workflow, choose staging or production and the branch or tag.
+# Secrets live in GitHub environments named "staging" and "production" (see docs/deploy-monsterasp.md).
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy
+        type: choice
+        options: [staging, production]
+        default: staging
+      self_contained:
+        description: Bundle the .NET runtime (use if the site shows HTTP 500.31)
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Test
+        run: |
+          dotnet test --configuration Release
+          cd web && npm ci && npm test
+
+      - name: Build the app into wwwroot
+        working-directory: web
+        run: npm run build
+
+      - name: Publish
+        run: >
+          dotnet publish src/TowerHaat.Api --configuration Release --output publish
+          --runtime win-x64 --self-contained ${{ inputs.self_contained }}
+          -p:EnvironmentName=${{ inputs.environment == 'production' && 'Production' || 'Staging' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: towerhaat-${{ inputs.environment }}-${{ github.sha }}
+          path: publish
+          retention-days: 30
+
+  deploy:
+    needs: build
+    runs-on: windows-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: towerhaat-${{ inputs.environment }}-${{ github.sha }}
+          path: publish
+
+      - name: Install Web Deploy if missing
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe")) {
+            choco install webdeploy --yes --no-progress
+          }
+
+      # AppOffline stops the site while files are copied; DoNotDeleteRule and the App_Data skip keep
+      # uploaded photos, logs, backups and the settings file on the server.
+      - name: Deploy with Web Deploy
+        shell: pwsh
+        env:
+          WEBDEPLOY_URL: ${{ secrets.WEBDEPLOY_URL }}
+          WEBDEPLOY_SITE: ${{ secrets.WEBDEPLOY_SITE }}
+          WEBDEPLOY_USERNAME: ${{ secrets.WEBDEPLOY_USERNAME }}
+          WEBDEPLOY_PASSWORD: ${{ secrets.WEBDEPLOY_PASSWORD }}
+        run: |
+          $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          $source = (Resolve-Path publish).Path
+          & $msdeploy -verb:sync `
+            "-source:contentPath=$source" `
+            "-dest:contentPath=$env:WEBDEPLOY_SITE,computerName=$env:WEBDEPLOY_URL,userName=$env:WEBDEPLOY_USERNAME,password=$env:WEBDEPLOY_PASSWORD,authType=Basic" `
+            -allowUntrusted `
+            -enableRule:AppOffline `
+            -enableRule:DoNotDeleteRule `
+            "-skip:Directory=\\App_Data" `
+            "-skip:objectName=filePath,absolutePath=appsettings\.(Production|Staging)\.json$"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the site is up
+        shell: pwsh
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          for ($i = 1; $i -le 12; $i++) {
+            try {
+              $health = Invoke-RestMethod "$env:SITE_URL/api/health" -TimeoutSec 20
+              if ($health.status -eq "ok") { Write-Host "Healthy: $($health.utcNow)"; exit 0 }
+            } catch { Write-Host "Not up yet: $($_.Exception.Message)" }
+            Start-Sleep -Seconds 10
+          }
+          Write-Error "The site did not answer /api/health. Check the error log or the hosting panel."
+          exit 1

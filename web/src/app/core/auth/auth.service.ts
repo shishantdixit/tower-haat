@@ -67,6 +67,12 @@ export class AuthService {
     return this.refreshing;
   }
 
+  /** Deletes the account (the server also ends every session) and forgets it here. */
+  async deleteAccount(): Promise<void> {
+    await firstValueFrom(this.http.delete('/api/me'));
+    this.session.set(null);
+  }
+
   async logout(): Promise<void> {
     try {
       await firstValueFrom(this.http.post('/api/auth/logout', null));

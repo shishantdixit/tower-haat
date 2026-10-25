@@ -89,5 +89,9 @@ public sealed class OrderFlowTests(TowerHaatFactory factory) : IClassFixture<Tow
         Assert.Equal(HttpStatusCode.NotFound, without.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.SendAsync(wrong, _ct)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(right, _ct)).StatusCode);
+
+        // Schedulers that can only open a URL pass the key in the query string.
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/jobs/expire-orders?key={TowerHaatFactory.JobKey}", _ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/jobs/expire-orders?key=wrong", _ct)).StatusCode);
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Notifications;
+using TowerHaat.Infrastructure.Backups;
 using TowerHaat.Infrastructure.Persistence;
 using TowerHaat.Infrastructure.Push;
 using TowerHaat.Infrastructure.Sms;
@@ -29,6 +30,11 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(FileStorageOptions.Section))
             .PostConfigure(o => o.RootPath = Path.Combine(environment.ContentRootPath, o.RootPath));
         services.AddSingleton<IFileStorage, DiskFileStorage>();
+
+        services.AddOptions<BackupOptions>()
+            .Bind(configuration.GetSection(BackupOptions.Section))
+            .PostConfigure(o => o.Path = Path.Combine(environment.ContentRootPath, o.Path));
+        services.AddSingleton<IDatabaseBackup, DatabaseBackup>();
 
         services.AddOptions<PushOptions>().Bind(configuration.GetSection(PushOptions.Section));
         services.AddHttpClient<IPushSender, WebPushSender>(client => client.Timeout = TimeSpan.FromSeconds(15));

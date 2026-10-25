@@ -9,6 +9,8 @@ import {
 // One lazy chunk per area.
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'customer' },
+  { path: 'terms', loadComponent: () => import('./legal/terms') },
+  { path: 'privacy', loadComponent: () => import('./legal/privacy') },
   { path: 'login', canActivate: [signedOutGuard], loadComponent: () => import('./account/login') },
   {
     path: 'signup',

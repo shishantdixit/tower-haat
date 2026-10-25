@@ -16,6 +16,13 @@ internal static class MeEndpoints
         group.MapPut("/profile", async (SaveProfileRequest request, ClaimsPrincipal user, MeService me, CancellationToken ct) =>
             TypedResults.Ok(await me.SaveProfileAsync(user.GetUserId(), request, ct)));
 
+        group.MapDelete("/", async (ClaimsPrincipal user, MeService me, HttpResponse response, CancellationToken ct) =>
+        {
+            await me.DeleteAccountAsync(user.GetUserId(), ct);
+            RefreshCookie.Delete(response);
+            return TypedResults.NoContent();
+        });
+
         return app;
     }
 }

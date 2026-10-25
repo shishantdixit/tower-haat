@@ -17,6 +17,11 @@ import { BusinessAdminApi } from '../core/api/business.api';
         >Types and categories <span class="muted">What businesses can offer</span></a
       >
       <a routerLink="societies">Societies <span class="muted">Towers and flats</span></a>
+      <a routerLink="stats"
+        >Pilot stats <span class="muted">Orders a day, rejections, disputes</span></a
+      >
+      <a routerLink="backups">Backups <span class="muted">Download a copy of the database</span></a>
+      <a routerLink="errors">Error log <span class="muted">Recent warnings and errors</span></a>
     </nav>
   `,
   styles: `

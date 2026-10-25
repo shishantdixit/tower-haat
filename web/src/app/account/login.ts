@@ -7,14 +7,20 @@ import {
   signal,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
 import { AuthService } from '../core/auth/auth.service';
 
 /** Phone number, then the 6-digit code (C-01). */
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
+  styles: `
+    .legal-links {
+      margin-top: 16px;
+      font-size: 0.875rem;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1>Society ka apna bazaar</h1>
@@ -75,6 +81,11 @@ import { AuthService } from '../core/auth/auth.service';
         </button>
       </form>
     }
+
+    <p class="muted small legal-links">
+      By continuing you agree to the <a routerLink="/terms">terms of use</a> and
+      <a routerLink="/privacy">privacy notice</a>.
+    </p>
   `,
 })
 export default class Login {

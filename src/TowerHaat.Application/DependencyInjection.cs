@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Admin;
 using TowerHaat.Application.Auth;
 using TowerHaat.Application.Businesses;
 using TowerHaat.Application.Catalog;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<OrderService>();
         services.AddScoped<OwnerOrderService>();
         services.AddSingleton<OrderExpiryJob>();
+        services.AddScoped<PilotStatsService>();
 
         return services;
     }

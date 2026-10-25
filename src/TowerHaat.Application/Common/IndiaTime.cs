@@ -11,6 +11,9 @@ public static class IndiaTime
 
     public static DateOnly Today(TimeProvider time) => DateOnly.FromDateTime(Now(time));
 
+    /// <summary>The date in India of a UTC time.</summary>
+    public static DateOnly Date(DateTime utc) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, Zone));
+
     /// <summary>A date and time in India as UTC.</summary>
     public static DateTime ToUtc(DateOnly date, TimeOnly time) =>
         TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(time, DateTimeKind.Unspecified), Zone);

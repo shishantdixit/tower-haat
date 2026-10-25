@@ -14,6 +14,12 @@ See `CLAUDE.md` for architecture, rules and milestones.
 - Node.js 24 LTS (or 22.22.3+)
 - SQL Server: LocalDB on Windows (installed with Visual Studio), or Docker anywhere else
 
+## Deploying and the pilot
+
+- [docs/deploy-monsterasp.md](docs/deploy-monsterasp.md): one-time MonsterASP setup and the Deploy workflow
+- [docs/pilot-checklist.md](docs/pilot-checklist.md): before launch, the three-phone bug bash, running the pilot
+- [docs/kitchen-onboarding.md](docs/kitchen-onboarding.md): a short guide for kitchen owners (Hinglish)
+
 ## Production settings
 
 Set these per environment (MonsterASP app settings or environment variables), never in committed files:
