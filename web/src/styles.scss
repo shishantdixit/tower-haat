@@ -1,0 +1,40 @@
+// Mobile-first: base styles target phones; wider screens add rules with min-width queries.
+:root {
+  --th-primary: #c2410c;
+  --th-primary-contrast: #ffffff;
+  --th-bg: #fffaf5;
+  --th-surface: #ffffff;
+  --th-text: #1c1917;
+  --th-muted: #78716c;
+  --th-border: #e7e5e4;
+  --th-radius: 12px;
+  --th-gap: 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--th-bg);
+  color: var(--th-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans',
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--th-primary);
+}

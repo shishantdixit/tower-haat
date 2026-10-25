@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.rsuser
+TestResults/
+appsettings.*.local.json
+*.local.json
+
+# Secrets
+.env
+*.pfx
+secrets.json
+
+# Node / Angular
+src/TowerHaat.Api/wwwroot/
+node_modules/
+dist/
+.angular/
+coverage/
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

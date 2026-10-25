@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TowerHaat.Api/TowerHaat.Api.csproj" />
+    <Project Path="src/TowerHaat.Application/TowerHaat.Application.csproj" />
+    <Project Path="src/TowerHaat.Domain/TowerHaat.Domain.csproj" />
+    <Project Path="src/TowerHaat.Infrastructure/TowerHaat.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TowerHaat.Tests/TowerHaat.Tests.csproj" />
+  </Folder>
+</Solution>
