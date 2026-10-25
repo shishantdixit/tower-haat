@@ -14,6 +14,15 @@ See `CLAUDE.md` for architecture, rules and milestones.
 - Node.js 24 LTS (or 22.22.3+)
 - SQL Server: LocalDB on Windows (installed with Visual Studio), or Docker anywhere else
 
+## Production settings
+
+Set these per environment (MonsterASP app settings or environment variables), never in committed files:
+
+- `ConnectionStrings__Default`
+- `Jwt__SigningKey`: random, at least 32 characters
+- `Auth__Otp__HashKey`: random, at least 32 characters
+- `Auth__AdminPhones__0`: your number
+
 ## Local setup
 
 ```bash
@@ -42,6 +51,18 @@ dotnet ef database update --project src/TowerHaat.Infrastructure --startup-proje
 
 `dotnet ef` uses the `ConnectionStrings__Default` environment variable when set, otherwise LocalDB.
 
+## Signing in locally
+
+SMS is not connected yet. In Development the login screen shows the code after "Get code" (it is also in the API log).
+
+To make yourself a platform admin (society, tower and flat lists), add your number and sign in again:
+
+```bash
+dotnet user-secrets set "Auth:AdminPhones:0" "98765 43210" --project src/TowerHaat.Api
+```
+
+Then open `/admin`, choose Ace Divino and upload the flat list (`Tower,Flat` per line).
+
 ## Run
 
 Two terminals:
@@ -65,7 +86,7 @@ The service worker is only active in production builds.
 ## Test
 
 ```bash
-dotnet test                                   # xUnit: tenancy and API tests (SQLite in memory, no SQL Server needed)
+dotnet test                                   # xUnit: tenancy, auth, profile, admin and API tests (SQLite in memory)
 cd web && npm test                            # Vitest
 ```
 
@@ -81,8 +102,8 @@ dotnet ef migrations add <FeatureName> --project src/TowerHaat.Infrastructure --
 
 ```
 src/TowerHaat.Domain          entities and domain rules (no EF, no ASP.NET)
-src/TowerHaat.Application     use cases, DTOs, interfaces (ICurrentSociety, …)
-src/TowerHaat.Infrastructure  AppDbContext, tenancy filter, migrations
+src/TowerHaat.Application     use cases (Auth, Residents, Societies), DTOs, interfaces
+src/TowerHaat.Infrastructure  AppDbContext, tenancy filter, migrations, SMS sender
 src/TowerHaat.Api             minimal API endpoints; serves the Angular build from wwwroot
 tests/TowerHaat.Tests         xUnit
 web/                          Angular PWA (customer, owner, admin lazy areas)

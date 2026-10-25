@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Tenancy;
 using TowerHaat.Infrastructure.Persistence;
 
 namespace TowerHaat.Tests.Support;
@@ -24,12 +24,17 @@ public sealed class TestDatabase : IDisposable
         context.Database.EnsureCreated();
     }
 
-    public AppDbContext CreateContext(Guid? societyId) => new(_options, new FixedSociety(societyId));
+    public AppDbContext CreateContext(Guid? societyId, bool canUseAnySociety = false) =>
+        CreateContext(Society(societyId, canUseAnySociety));
+
+    public AppDbContext CreateContext(SocietyContext society) => new(_options, society);
+
+    public static SocietyContext Society(Guid? societyId, bool canUseAnySociety = false)
+    {
+        var society = new SocietyContext();
+        society.SetHome(societyId, canUseAnySociety);
+        return society;
+    }
 
     public void Dispose() => _connection.Dispose();
-
-    private sealed class FixedSociety(Guid? societyId) : ICurrentSociety
-    {
-        public Guid? SocietyId => societyId;
-    }
 }

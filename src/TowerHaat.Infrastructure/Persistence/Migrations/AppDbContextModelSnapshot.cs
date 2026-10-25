@@ -22,6 +22,104 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("TowerHaat.Domain.Auth.OtpRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone", "CreatedAt");
+
+                    b.ToTable("OtpRequests");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Auth.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReplacedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TowerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SocietyId");
+
+                    b.HasIndex("TowerId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("Flats");
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Society", b =>
                 {
                     b.Property<Guid>("Id")
@@ -47,6 +145,15 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Societies");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("01920000-0000-7000-8000-000000000001"),
+                            City = "Noida",
+                            IsActive = true,
+                            Name = "Ace Divino"
+                        });
                 });
 
             modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>
@@ -73,6 +180,102 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                     b.ToTable("Towers");
                 });
 
+            modelBuilder.Entity("TowerHaat.Domain.Users.ResidentProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ConsentedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("FlatId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ManualFlat")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ManualTower")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FlatId");
+
+                    b.HasIndex("SocietyId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ResidentProfiles");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Users.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPlatformAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Auth.RefreshToken", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Societies.Tower", "Tower")
+                        .WithMany("Flats")
+                        .HasForeignKey("TowerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tower");
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>
                 {
                     b.HasOne("TowerHaat.Domain.Societies.Society", null)
@@ -80,6 +283,33 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SocietyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Users.ResidentProfile", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Societies.Flat", "Flat")
+                        .WithMany()
+                        .HasForeignKey("FlatId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Flat");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>
+                {
+                    b.Navigation("Flats");
                 });
 #pragma warning restore 612, 618
         }

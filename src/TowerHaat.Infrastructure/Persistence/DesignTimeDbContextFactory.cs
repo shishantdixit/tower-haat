@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Tenancy;
 
 namespace TowerHaat.Infrastructure.Persistence;
 
@@ -16,11 +16,6 @@ internal sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<A
             .UseSqlServer(connectionString)
             .Options;
 
-        return new AppDbContext(options, new NoSociety());
-    }
-
-    private sealed class NoSociety : ICurrentSociety
-    {
-        public Guid? SocietyId => null;
+        return new AppDbContext(options, new SocietyContext());
     }
 }

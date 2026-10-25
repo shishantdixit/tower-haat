@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AuthService } from './core/auth/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -8,16 +9,27 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   template: `
     <header class="bar">
       <a class="brand" routerLink="/">TowerHaat</a>
+      @if (auth.hasProfile()) {
+        <a class="me" routerLink="/profile" aria-label="My profile">
+          {{ auth.user()?.profile?.tower }}-{{ auth.user()?.profile?.flat }}
+        </a>
+      }
     </header>
     <main class="content">
       <router-outlet />
     </main>
-    <!-- Temporary area switcher until M1 adds login and roles. -->
-    <nav class="tabs" aria-label="Areas">
-      <a routerLink="/customer" routerLinkActive="active">Shop</a>
-      <a routerLink="/owner" routerLinkActive="active">My business</a>
-      <a routerLink="/admin" routerLinkActive="active">Admin</a>
-    </nav>
+    @if (auth.hasProfile() || auth.isPlatformAdmin()) {
+      <nav class="tabs" aria-label="Areas">
+        @if (auth.hasProfile()) {
+          <a routerLink="/customer" routerLinkActive="active">Shop</a>
+          <a routerLink="/owner" routerLinkActive="active">My business</a>
+        }
+        @if (auth.isPlatformAdmin()) {
+          <a routerLink="/admin" routerLinkActive="active">Admin</a>
+        }
+        <button type="button" class="tab-button" (click)="logout()">Sign out</button>
+      </nav>
+    }
   `,
   styles: `
     :host {
@@ -28,15 +40,27 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     .bar {
       position: sticky;
       top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 12px var(--th-gap);
       padding-top: max(12px, env(safe-area-inset-top));
       background: var(--th-primary);
     }
-    .brand {
+    .brand,
+    .me {
       color: var(--th-primary-contrast);
+      text-decoration: none;
+    }
+    .brand {
       font-size: 1.25rem;
       font-weight: 700;
-      text-decoration: none;
+    }
+    .me {
+      font-size: 0.875rem;
+      font-weight: 600;
+      opacity: 0.9;
     }
     .content {
       flex: 1;
@@ -53,10 +77,17 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       background: var(--th-surface);
       padding-bottom: env(safe-area-inset-bottom);
     }
-    .tabs a {
+    .tabs a,
+    .tab-button {
       flex: 1;
+      min-height: 48px;
       padding: 12px 4px;
+      border: 0;
+      border-radius: 0;
+      background: none;
       color: var(--th-muted);
+      font-size: 0.9375rem;
+      font-weight: 500;
       text-align: center;
       text-decoration: none;
     }
@@ -66,4 +97,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     }
   `,
 })
-export class App {}
+export class App {
+  protected readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  protected async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigate(['/login']);
+  }
+}

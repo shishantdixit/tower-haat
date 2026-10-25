@@ -8,16 +8,16 @@ namespace TowerHaat.Tests.Tenancy;
 public sealed class TenancyFilterTests : IDisposable
 {
     private readonly TestDatabase _database = new();
-    private readonly Society _aceDivino = new("Ace Divino", "Noida");
+    private readonly Society _home = new("Test Society", "Noida");
     private readonly Society _other = new("Other Society", "Noida");
 
     public TenancyFilterTests()
     {
         using var context = _database.CreateContext(societyId: null);
-        context.Societies.AddRange(_aceDivino, _other);
+        context.Societies.AddRange(_home, _other);
         context.Towers.AddRange(
-            new Tower("A") { SocietyId = _aceDivino.Id },
-            new Tower("B") { SocietyId = _aceDivino.Id },
+            new Tower("A") { SocietyId = _home.Id },
+            new Tower("B") { SocietyId = _home.Id },
             new Tower("A") { SocietyId = _other.Id });
         context.SaveChanges();
     }
@@ -25,18 +25,18 @@ public sealed class TenancyFilterTests : IDisposable
     [Fact]
     public async Task Resident_sees_only_their_societys_rows()
     {
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
 
         var towers = await context.Towers.ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(2, towers.Count);
-        Assert.All(towers, t => Assert.Equal(_aceDivino.Id, t.SocietyId));
+        Assert.All(towers, t => Assert.Equal(_home.Id, t.SocietyId));
     }
 
     [Fact]
     public async Task Filter_cannot_be_bypassed_by_filtering_on_another_society()
     {
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
 
         var towers = await context.Towers
             .Where(t => t.SocietyId == _other.Id)
@@ -68,9 +68,10 @@ public sealed class TenancyFilterTests : IDisposable
     [Fact]
     public async Task Societies_themselves_are_not_filtered()
     {
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
 
-        Assert.Equal(2, await context.Societies.CountAsync(TestContext.Current.CancellationToken));
+        // Both test societies plus the seeded Ace Divino.
+        Assert.Equal(3, await context.Societies.CountAsync(TestContext.Current.CancellationToken));
     }
 
     public void Dispose() => _database.Dispose();

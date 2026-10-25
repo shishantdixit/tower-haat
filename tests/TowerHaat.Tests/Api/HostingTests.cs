@@ -1,10 +1,9 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
+using TowerHaat.Tests.Support;
 
 namespace TowerHaat.Tests.Api;
 
-public sealed class HostingTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HostingTests(TowerHaatFactory factory) : IClassFixture<TowerHaatFactory>
 {
     [Fact]
     public async Task Health_returns_ok()

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Common;
 using TowerHaat.Domain.Societies;
+using TowerHaat.Domain.Users;
 using TowerHaat.Infrastructure.Persistence;
 using TowerHaat.Tests.Support;
 
@@ -13,6 +15,9 @@ public sealed class TenancyModelTests : IDisposable
     private static readonly HashSet<Type> GlobalEntities =
     [
         typeof(Society),
+        typeof(User),
+        typeof(OtpRequest),
+        typeof(RefreshToken),
     ];
 
     private readonly TestDatabase _database = new();

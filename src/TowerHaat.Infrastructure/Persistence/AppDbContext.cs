@@ -1,18 +1,30 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Common;
 using TowerHaat.Domain.Societies;
+using TowerHaat.Domain.Users;
 
 namespace TowerHaat.Infrastructure.Persistence;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociety currentSociety)
-    : DbContext(options)
+    : DbContext(options), IAppDbContext
 {
-    public const string TenancyFilter = "Tenancy";
+    public const string TenancyFilter = Application.Tenancy.TenancyFilter.Name;
 
     public DbSet<Society> Societies => Set<Society>();
 
     public DbSet<Tower> Towers => Set<Tower>();
+
+    public DbSet<Flat> Flats => Set<Flat>();
+
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<ResidentProfile> ResidentProfiles => Set<ResidentProfile>();
+
+    public DbSet<OtpRequest> OtpRequests => Set<OtpRequest>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // Read by the query filter on every query, so the filter follows this context's society.
     private Guid? CurrentSocietyId => currentSociety.SocietyId;
@@ -28,6 +40,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
                 ConfigureTenantMethod.MakeGenericMethod(entityType.ClrType).Invoke(this, [modelBuilder]);
             }
         }
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Times are stored in UTC; mark them as UTC when read back.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<UtcDateTimeConverter>();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

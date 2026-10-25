@@ -8,13 +8,13 @@ namespace TowerHaat.Tests.Tenancy;
 public sealed class TenancyWriteTests : IDisposable
 {
     private readonly TestDatabase _database = new();
-    private readonly Society _aceDivino = new("Ace Divino", "Noida");
+    private readonly Society _home = new("Test Society", "Noida");
     private readonly Society _other = new("Other Society", "Noida");
 
     public TenancyWriteTests()
     {
         using var context = _database.CreateContext(societyId: null);
-        context.Societies.AddRange(_aceDivino, _other);
+        context.Societies.AddRange(_home, _other);
         context.SaveChanges();
     }
 
@@ -24,7 +24,7 @@ public sealed class TenancyWriteTests : IDisposable
         var ct = TestContext.Current.CancellationToken;
         var tower = new Tower("C");
 
-        await using (var context = _database.CreateContext(_aceDivino.Id))
+        await using (var context = _database.CreateContext(_home.Id))
         {
             context.Towers.Add(tower);
             await context.SaveChangesAsync(ct);
@@ -32,13 +32,13 @@ public sealed class TenancyWriteTests : IDisposable
 
         await using var admin = _database.CreateContext(societyId: null);
         var saved = await admin.Towers.IgnoreQueryFilters().SingleAsync(t => t.Id == tower.Id, ct);
-        Assert.Equal(_aceDivino.Id, saved.SocietyId);
+        Assert.Equal(_home.Id, saved.SocietyId);
     }
 
     [Fact]
     public async Task Cannot_add_a_row_to_another_society()
     {
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
         context.Towers.Add(new Tower("C") { SocietyId = _other.Id });
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -69,7 +69,7 @@ public sealed class TenancyWriteTests : IDisposable
     public async Task Cannot_move_a_row_to_another_society()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
         var tower = new Tower("C");
         context.Towers.Add(tower);
         await context.SaveChangesAsync(ct);
@@ -90,7 +90,7 @@ public sealed class TenancyWriteTests : IDisposable
             await setup.SaveChangesAsync(ct);
         }
 
-        await using var context = _database.CreateContext(_aceDivino.Id);
+        await using var context = _database.CreateContext(_home.Id);
         context.Towers.Attach(foreign);
         context.Towers.Remove(foreign);
 

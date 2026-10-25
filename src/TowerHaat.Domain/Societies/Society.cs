@@ -5,6 +5,9 @@ namespace TowerHaat.Domain.Societies;
 /// <summary>The tenant itself, so it is not an <see cref="ITenantEntity"/>.</summary>
 public class Society : Entity
 {
+    /// <summary>The launch society, seeded by the AddResidents migration.</summary>
+    public static readonly Guid AceDivinoId = new("01920000-0000-7000-8000-000000000001");
+
     private Society()
     {
     }

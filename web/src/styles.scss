@@ -7,6 +7,8 @@
   --th-text: #1c1917;
   --th-muted: #78716c;
   --th-border: #e7e5e4;
+  --th-danger: #b91c1c;
+  --th-success: #15803d;
   --th-radius: 12px;
   --th-gap: 16px;
 }
@@ -37,4 +39,138 @@ body {
 
 a {
   color: var(--th-primary);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+h2 {
+  margin: 24px 0 8px;
+  font-size: 1.125rem;
+}
+
+.muted {
+  color: var(--th-muted);
+}
+
+.error {
+  color: var(--th-danger);
+}
+
+.success {
+  color: var(--th-success);
+}
+
+.card {
+  padding: var(--th-gap);
+  border: 1px solid var(--th-border);
+  border-radius: var(--th-radius);
+  background: var(--th-surface);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--th-gap);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+// Forms: full-width, 16px text so iOS does not zoom on focus, 44px touch targets.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  > span {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+}
+
+input:not([type='checkbox']),
+select,
+textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--th-border);
+  border-radius: 8px;
+  background: var(--th-surface);
+  color: var(--th-text);
+  font: inherit;
+  font-size: 16px;
+
+  &:focus {
+    outline: 2px solid var(--th-primary);
+    outline-offset: -1px;
+  }
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  input {
+    width: 20px;
+    height: 20px;
+    margin: 2px 0 0;
+    accent-color: var(--th-primary);
+    flex-shrink: 0;
+  }
+}
+
+button,
+.button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--th-border);
+  border-radius: 8px;
+  background: var(--th-surface);
+  color: var(--th-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.primary {
+    border-color: var(--th-primary);
+    background: var(--th-primary);
+    color: var(--th-primary-contrast);
+  }
+
+  &.link {
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--th-primary);
+    font-weight: 500;
+  }
+
+  &.danger {
+    color: var(--th-danger);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.block {
+  width: 100%;
 }

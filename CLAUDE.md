@@ -31,7 +31,7 @@ web/                         Angular PWA
 
 ## Non-negotiable rules
 
-1. **Tenancy:** every society-owned entity implements `ITenantEntity` with `SocietyId`, including child rows (order items, payments, status history, catalog items, follows, enquiries…), not only the parent. `AppDbContext` applies the named query filter `AppDbContext.TenancyFilter` from `ICurrentSociety`, and on save stamps new rows with the current society and refuses writes to another society. Platform admin endpoints are the only place the filter may be ignored, explicitly, with `IgnoreQueryFilters([AppDbContext.TenancyFilter])`. Entities shared by all societies (Society, User, BusinessType…) must be added to the allow-list in `TenancyModelTests`.
+1. **Tenancy:** every society-owned entity implements `ITenantEntity` with `SocietyId`, including child rows (order items, payments, status history, catalog items, follows, enquiries…), not only the parent. `AppDbContext` applies the named query filter `AppDbContext.TenancyFilter` from `ICurrentSociety`, and on save stamps new rows with the current society and refuses writes to another society. To work in a society other than the user's own (the public sign-up picker, platform admin screens), call `ISocietyScope.Use(societyId)`: the filter stays on and points at that society; residents get 403 for a society that is not theirs. The filter may be ignored, explicitly, with `IgnoreQueryFilters([TenancyFilter.Name])`, only in platform admin endpoints and in `MeService.LoadOwnProfileAsync` (reading the user's own profile to put their society in the token). Entities shared by all societies (Society, User, BusinessType…) must be added to the allow-list in `TenancyModelTests`.
 2. **Money never flows through the platform.** UPI is a direct deep link/QR to the business's UPI ID; COD is cash. Platform only tracks payment status.
 3. **Snapshots:** orders copy item name, price and delivery address at order time.
 4. **Privacy:** a business sees a customer's phone and address only on that customer's orders with that business.
@@ -44,17 +44,22 @@ web/                         Angular PWA
 - **Tenancy columns:** the spec's data model omits `SocietyId` on child tables; rule 1 above wins, so they get it.
 - **Images:** stored on disk behind `IFileStorage` (the spec's "Stored in S3" is superseded).
 - **Auto-expiry (M3):** IIS on MonsterASP can unload the app when idle, so expiry must not rely only on an in-process `BackgroundService`. Run it from a MonsterASP scheduled task calling a protected endpoint, and also treat a Placed order older than 30 minutes as Expired when it is read.
+- **SMS (until DLT approval):** `LoggingSmsSender` writes OTPs to the log; in Development the API also returns the code and the login screen shows it. Swap in a real `ISmsSender` before the pilot (M6); nothing else changes.
+- **Sessions:** 30-minute JWT access token kept in memory by the PWA; 60-day refresh token in an HTTP-only, Secure, SameSite=Strict cookie on `/api/auth`, rotated on every use, and reuse of a rotated token ends all the user's sessions.
+- **Platform admins:** phones listed in `Auth:AdminPhones` become admins when they sign in.
+- **Consent (DPDP):** asked at sign-up in M1 rather than M6, stored as `ResidentProfile.ConsentedAt`.
 - **Payment statuses (M4):** include `Disputed` as an owner action alongside confirm, COD collected and refunded (B-08 omits it; the spec's payment table and edge cases include it).
 
 ## Conventions
 
 - C# nullable enabled and warnings as errors (`Directory.Build.props`), package versions in `Directory.Packages.props`, file-scoped namespaces, async all the way, `CancellationToken` on public async APIs.
 - Minimal APIs grouped per module (`MapGroup("/api/orders")`).
-- Ids are `Guid.CreateVersion7()` (set in `Entity`).
+- Ids are `Guid.CreateVersion7()` (set in `Entity`). Stored times are UTC `DateTime` (SQLite cannot compare `DateTimeOffset`); `TimeProvider` gives the clock so tests can move it.
+- Use cases live in Application services (`AuthService`, `MeService`, …) over `IAppDbContext`; endpoints stay thin. Expected failures throw `AppException(ErrorKind, message)`, which the API turns into problem details whose `detail` the PWA shows as is.
 - Tests run against SQLite in memory (`TestDatabase`) so queries go through real SQL translation; keep the model provider-neutral so this keeps working.
 - Every business rule gets a unit test. Tenancy and order rules must have tests before merge.
 - Migrations live in `Infrastructure/Persistence/Migrations`; name them by feature (`AddOrders`). CI fails if the model changes without a migration.
-- Angular: standalone components, signals, OnPush, lazy routes per area (`customer`, `owner`, `admin`), mobile-first SCSS with the CSS variables in `web/src/styles.scss`. `ng build` writes into `src/TowerHaat.Api/wwwroot` (gitignored). Prettier formats `web/src`.
+- Angular: standalone components, signals, OnPush, lazy routes per area (`customer`, `owner`, `admin`), mobile-first SCSS with the CSS variables in `web/src/styles.scss`. `ng build` writes into `src/TowerHaat.Api/wwwroot` (gitignored). Prettier formats `web/src`. Forms that use `(ngSubmit)` need `[formGroup]`, otherwise the browser submits and reloads the page.
 - Times stored in UTC; display in Asia/Kolkata.
 - Reference requirement IDs in commit messages and PR titles (e.g. `M3: order creation (C-06)`).
 

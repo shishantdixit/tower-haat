@@ -11,5 +11,7 @@ internal sealed class SocietyConfiguration : IEntityTypeConfiguration<Society>
         builder.Property(s => s.Name).HasMaxLength(200).IsRequired();
         builder.Property(s => s.City).HasMaxLength(100).IsRequired();
         builder.HasIndex(s => s.Name).IsUnique();
+
+        builder.HasData(new { Id = Society.AceDivinoId, Name = "Ace Divino", City = "Noida", IsActive = true });
     }
 }
