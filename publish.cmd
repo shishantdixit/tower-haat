@@ -128,14 +128,16 @@ rem AppOffline stops the site while files are copied; DoNotDeleteRule and the Ap
 rem uploaded photos, logs, backups and the settings file on the server.
 echo.
 echo === Web Deploy ===
+rem msdeploy rejects arguments that start with a quote, so the quotes go inside the values.
 "%MSDEPLOY%" -verb:sync ^
-  "-source:contentPath=%CD%\publish" ^
-  "-dest:contentPath=%WEBDEPLOY_SITE%,computerName=%WEBDEPLOY_URL%,userName=%WEBDEPLOY_USERNAME%,password=%WEBDEPLOY_PASSWORD%,authType=Basic" ^
+  -source:contentPath="%CD%\publish" ^
+  -dest:contentPath="%WEBDEPLOY_SITE%",computerName="%WEBDEPLOY_URL%",userName="%WEBDEPLOY_USERNAME%",password="%WEBDEPLOY_PASSWORD%",authType=Basic ^
   -allowUntrusted ^
   -enableRule:AppOffline ^
   -enableRule:DoNotDeleteRule ^
-  "-skip:Directory=\\App_Data" ^
-  "-skip:objectName=filePath,absolutePath=appsettings\.(Production|Staging)\.json$" || goto failed
+  -skip:Directory=\\App_Data ^
+  -skip:objectName=filePath,absolutePath=appsettings\.Production\.json$ ^
+  -skip:objectName=filePath,absolutePath=appsettings\.Staging\.json$ || goto failed
 
 echo.
 echo === Checking %SITE_URL%/api/health ===
