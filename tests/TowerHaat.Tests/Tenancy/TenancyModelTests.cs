@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Domain.Auth;
+using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Common;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
@@ -18,6 +19,8 @@ public sealed class TenancyModelTests : IDisposable
         typeof(User),
         typeof(OtpRequest),
         typeof(RefreshToken),
+        typeof(BusinessType),
+        typeof(Category),
     ];
 
     private readonly TestDatabase _database = new();

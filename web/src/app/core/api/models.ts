@@ -69,3 +69,158 @@ export interface ImportFlatsResult {
   flatsAlreadyListed: number;
   errors: { line: number; message: string }[];
 }
+
+export type BusinessStatus = 'Pending' | 'Active' | 'Rejected' | 'Deactivated';
+
+export interface Category {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface BusinessType {
+  id: string;
+  name: string;
+  orderingEnabled: boolean;
+  sortOrder: number;
+  isActive: boolean;
+  categories: Category[];
+}
+
+export interface SaveBusinessRequest {
+  businessTypeId: string;
+  categoryId: string;
+  name: string;
+  description: string | null;
+  upiId: string | null;
+  fssaiNumber: string | null;
+  whatsAppPhone: string | null;
+}
+
+export interface BusinessSettings {
+  opensAt: string;
+  closesAt: string;
+  acceptOrdersUntil: string | null;
+  isOpen: boolean;
+  minOrderValue: number;
+  deliveryCharge: number;
+}
+
+export interface Photo {
+  id: string;
+  url: string;
+}
+
+export interface OwnerBusiness {
+  id: string;
+  name: string;
+  description: string | null;
+  businessTypeId: string;
+  businessTypeName: string;
+  orderingEnabled: boolean;
+  categoryId: string;
+  categoryName: string;
+  upiId: string | null;
+  fssaiNumber: string | null;
+  whatsAppPhone: string;
+  status: BusinessStatus;
+  statusNote: string | null;
+  settings: BusinessSettings;
+  isOpenNow: boolean;
+  photos: Photo[];
+}
+
+export interface SaveItemRequest {
+  name: string;
+  description: string | null;
+  price: number;
+  isVeg: boolean | null;
+  dailyLimit: number | null;
+  isAvailableToday: boolean;
+  isHidden: boolean;
+  sortOrder: number;
+}
+
+export interface OwnerItem extends SaveItemRequest {
+  id: string;
+  photoUrl: string | null;
+  soldToday: number;
+  isSoldOut: boolean;
+}
+
+export interface AdminBusiness {
+  id: string;
+  name: string;
+  description: string | null;
+  societyId: string;
+  societyName: string;
+  ownerName: string;
+  ownerPhone: string;
+  ownerAddress: string;
+  businessTypeName: string;
+  categoryName: string;
+  upiId: string | null;
+  fssaiNumber: string | null;
+  status: BusinessStatus;
+  statusNote: string | null;
+  createdAt: string;
+  photoUrls: string[];
+}
+
+export interface CategoryChip {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export interface BusinessCard {
+  id: string;
+  name: string;
+  description: string | null;
+  businessTypeName: string;
+  categoryId: string;
+  categoryName: string;
+  orderingEnabled: boolean;
+  isOpenNow: boolean;
+  opensAt: string;
+  closesAt: string;
+  coverPhotoUrl: string | null;
+}
+
+export interface Directory {
+  categories: CategoryChip[];
+  businesses: BusinessCard[];
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  isVeg: boolean | null;
+  photoUrl: string | null;
+  isSoldOut: boolean;
+  remainingToday: number | null;
+}
+
+export interface BusinessPage {
+  id: string;
+  name: string;
+  description: string | null;
+  businessTypeName: string;
+  categoryName: string;
+  orderingEnabled: boolean;
+  isOpenNow: boolean;
+  isAcceptingOrders: boolean;
+  opensAt: string;
+  closesAt: string;
+  acceptOrdersUntil: string | null;
+  minOrderValue: number;
+  deliveryCharge: number;
+  fssaiNumber: string | null;
+  whatsAppUrl: string;
+  isOwnerPreview: boolean;
+  photoUrls: string[];
+  items: MenuItem[];
+}

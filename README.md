@@ -22,6 +22,7 @@ Set these per environment (MonsterASP app settings or environment variables), ne
 - `Jwt__SigningKey`: random, at least 32 characters
 - `Auth__Otp__HashKey`: random, at least 32 characters
 - `Auth__AdminPhones__0`: your number
+- `Storage__RootPath`: optional; folder for uploaded photos (default `App_Data/uploads` under the site). Include it in backups.
 
 ## Local setup
 
@@ -61,7 +62,7 @@ To make yourself a platform admin (society, tower and flat lists), add your numb
 dotnet user-secrets set "Auth:AdminPhones:0" "98765 43210" --project src/TowerHaat.Api
 ```
 
-Then open `/admin`, choose Ace Divino and upload the flat list (`Tower,Flat` per line).
+Then open `/admin`: upload Ace Divino's flat list under Societies (`Tower,Flat` per line), and approve businesses under Business approvals.
 
 ## Run
 

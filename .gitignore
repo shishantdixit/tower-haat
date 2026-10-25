@@ -16,6 +16,7 @@ secrets.json
 
 # Node / Angular
 src/TowerHaat.Api/wwwroot/
+App_Data/
 node_modules/
 dist/
 .angular/

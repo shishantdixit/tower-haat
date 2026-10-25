@@ -11,7 +11,7 @@ import { SocietyAdminApi } from '../core/api/society.api';
   imports: [ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <p><a routerLink="/admin">← Societies</a></p>
+    <p><a routerLink="/admin/societies">← Societies</a></p>
     <h1>Towers and flats</h1>
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>

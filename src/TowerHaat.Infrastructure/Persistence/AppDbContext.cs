@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Domain.Auth;
+using TowerHaat.Domain.Businesses;
+using TowerHaat.Domain.Catalog;
 using TowerHaat.Domain.Common;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
@@ -26,6 +28,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<BusinessType> BusinessTypes => Set<BusinessType>();
+
+    public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Business> Businesses => Set<Business>();
+
+    public DbSet<BusinessPhoto> BusinessPhotos => Set<BusinessPhoto>();
+
+    public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+
     // Read by the query filter on every query, so the filter follows this context's society.
     private Guid? CurrentSocietyId => currentSociety.SocietyId;
 
@@ -47,6 +59,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
         // Times are stored in UTC; mark them as UTC when read back.
         configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
         configurationBuilder.Properties<DateTime?>().HaveConversion<UtcDateTimeConverter>();
+
+        // Rupees with paise; the same precision on every provider.
+        configurationBuilder.Properties<decimal>().HavePrecision(10, 2);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

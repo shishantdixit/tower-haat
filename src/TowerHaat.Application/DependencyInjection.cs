@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Auth;
+using TowerHaat.Application.Businesses;
+using TowerHaat.Application.Catalog;
+using TowerHaat.Application.Directory;
 using TowerHaat.Application.Residents;
 using TowerHaat.Application.Societies;
 using TowerHaat.Application.Tenancy;
@@ -21,6 +24,11 @@ public static class DependencyInjection
         services.AddScoped<MeService>();
         services.AddScoped<SocietyDirectoryService>();
         services.AddScoped<SocietyAdminService>();
+        services.AddScoped<BusinessTypeService>();
+        services.AddScoped<OwnerBusinessService>();
+        services.AddScoped<CatalogService>();
+        services.AddScoped<BusinessAdminService>();
+        services.AddScoped<DirectoryService>();
 
         return services;
     }

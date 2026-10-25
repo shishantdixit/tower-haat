@@ -1,15 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Infrastructure.Persistence;
 using TowerHaat.Infrastructure.Sms;
+using TowerHaat.Infrastructure.Storage;
 
 namespace TowerHaat.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
@@ -19,6 +22,11 @@ public static class DependencyInjection
 
         // Replaced by a real provider once the DLT sender and template are approved.
         services.AddSingleton<ISmsSender, LoggingSmsSender>();
+
+        services.AddOptions<FileStorageOptions>()
+            .Bind(configuration.GetSection(FileStorageOptions.Section))
+            .PostConfigure(o => o.RootPath = Path.Combine(environment.ContentRootPath, o.RootPath));
+        services.AddSingleton<IFileStorage, DiskFileStorage>();
 
         return services;
     }

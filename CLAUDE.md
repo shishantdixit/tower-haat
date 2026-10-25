@@ -48,6 +48,9 @@ web/                         Angular PWA
 - **Sessions:** 30-minute JWT access token kept in memory by the PWA; 60-day refresh token in an HTTP-only, Secure, SameSite=Strict cookie on `/api/auth`, rotated on every use, and reuse of a rotated token ends all the user's sessions.
 - **Platform admins:** phones listed in `Auth:AdminPhones` become admins when they sign in.
 - **Consent (DPDP):** asked at sign-up in M1 rather than M6, stored as `ResidentProfile.ConsentedAt`.
+- **Photos (M2):** resized in the browser (longest side 1600 px, JPEG) before upload; the server accepts JPEG, PNG or WebP up to 2 MB, checked by their first bytes, and stores them through `IFileStorage` (`DiskFileStorage` under `Storage:RootPath`, default `App_Data/uploads`). `/media/{key}` serves them publicly with a one-year cache, since image tags cannot send a token and keys are random.
+- **Businesses (M2):** one business per owner; Pending until a platform admin approves it; a rejected business goes back to Pending when the owner edits it; deactivated businesses cannot be edited. Settings (hours, last order time, minimum order, delivery charge) are columns on `Business`, not a separate table. Hours are daily, in Indian time, and may pass midnight; opening and closing at the same time means open all day.
+- **Sold out (M2 → M3):** `SoldToday.ForBusinessAsync` returns nothing sold until M3 counts today's order items there; daily limits and "sold out" already use it.
 - **Payment statuses (M4):** include `Disputed` as an owner action alongside confirm, COD collected and refunded (B-08 omits it; the spec's payment table and edge cases include it).
 
 ## Conventions
@@ -60,7 +63,7 @@ web/                         Angular PWA
 - Every business rule gets a unit test. Tenancy and order rules must have tests before merge.
 - Migrations live in `Infrastructure/Persistence/Migrations`; name them by feature (`AddOrders`). CI fails if the model changes without a migration.
 - Angular: standalone components, signals, OnPush, lazy routes per area (`customer`, `owner`, `admin`), mobile-first SCSS with the CSS variables in `web/src/styles.scss`. `ng build` writes into `src/TowerHaat.Api/wwwroot` (gitignored). Prettier formats `web/src`. Forms that use `(ngSubmit)` need `[formGroup]`, otherwise the browser submits and reloads the page.
-- Times stored in UTC; display in Asia/Kolkata.
+- Times stored in UTC; display in Asia/Kolkata (`IndiaTime` on the server, business hours are compared in Indian time). Money is `decimal(10,2)` rupees.
 - Reference requirement IDs in commit messages and PR titles (e.g. `M3: order creation (C-06)`).
 
 ## Milestones

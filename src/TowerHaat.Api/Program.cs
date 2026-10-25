@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
@@ -5,8 +6,11 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TowerHaat.Api.Admin;
 using TowerHaat.Api.Auth;
+using TowerHaat.Api.Businesses;
+using TowerHaat.Api.Directory;
 using TowerHaat.Api.Errors;
 using TowerHaat.Api.Health;
+using TowerHaat.Api.Media;
 using TowerHaat.Api.Residents;
 using TowerHaat.Api.Societies;
 using TowerHaat.Api.Tenancy;
@@ -18,9 +22,10 @@ using TowerHaat.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddExceptionHandler<AppExceptionHandler>();
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
 builder.Services.AddOptions<AuthOptions>()
     .Bind(builder.Configuration.GetSection(AuthOptions.Section))
@@ -60,7 +65,8 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AppClaims.PlatformAdminPolicy, policy => policy.RequireRole(AppClaims.PlatformAdminRole));
+    .AddPolicy(AppClaims.PlatformAdminPolicy, policy => policy.RequireRole(AppClaims.PlatformAdminRole))
+    .AddPolicy(AppClaims.ResidentPolicy, policy => policy.RequireClaim(AppClaims.SocietyId));
 
 // Per-IP limit on sign-in endpoints, on top of the per-phone OTP limits in AuthService.
 builder.Services.AddRateLimiter(options =>
@@ -90,9 +96,14 @@ app.MapAuthEndpoints();
 app.MapMeEndpoints();
 app.MapSocietyEndpoints();
 app.MapAdminSocietyEndpoints();
+app.MapBusinessTypeEndpoints();
+app.MapOwnerBusinessEndpoints();
+app.MapAdminBusinessEndpoints();
+app.MapDirectoryEndpoints();
+app.MapMediaEndpoints();
 
-// Angular routes get index.html; files (nonfile) and unknown /api routes stay 404.
-app.MapFallbackToFile("{*path:nonfile:regex(^(?!api(/|$)))}", "index.html");
+// Angular routes get index.html; files (nonfile) and unknown /api and /media routes stay 404.
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!(api|media)(/|$)))}", "index.html");
 
 app.Run();
 

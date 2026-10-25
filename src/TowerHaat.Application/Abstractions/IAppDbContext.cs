@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Domain.Auth;
+using TowerHaat.Domain.Businesses;
+using TowerHaat.Domain.Catalog;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
 
@@ -20,6 +22,16 @@ public interface IAppDbContext
     DbSet<OtpRequest> OtpRequests { get; }
 
     DbSet<RefreshToken> RefreshTokens { get; }
+
+    DbSet<BusinessType> BusinessTypes { get; }
+
+    DbSet<Category> Categories { get; }
+
+    DbSet<Business> Businesses { get; }
+
+    DbSet<BusinessPhoto> BusinessPhotos { get; }
+
+    DbSet<CatalogItem> CatalogItems { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -11,6 +11,7 @@ import { SocietyAdminApi } from '../core/api/society.api';
   imports: [ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <p><a routerLink="/admin">← Admin</a></p>
     <h1>Societies</h1>
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
@@ -20,7 +21,7 @@ import { SocietyAdminApi } from '../core/api/society.api';
       @for (society of societies(); track society.id) {
         <div class="card society">
           <div>
-            <a [routerLink]="['societies', society.id]"
+            <a [routerLink]="[society.id]"
               ><strong>{{ society.name }}</strong></a
             >, {{ society.city }}
             @if (!society.isActive) {

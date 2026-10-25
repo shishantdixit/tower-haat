@@ -23,6 +23,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
 
     public CapturingSmsSender Sms { get; } = new();
 
+    public InMemoryFileStorage Files { get; } = new();
+
     public HttpClient CreateHttpsClient() =>
         CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
 
@@ -44,6 +46,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
             services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
             services.RemoveAll<ISmsSender>();
             services.AddSingleton<ISmsSender>(Sms);
+            services.RemoveAll<IFileStorage>();
+            services.AddSingleton<IFileStorage>(Files);
         });
     }
 
