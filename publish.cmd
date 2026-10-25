@@ -122,7 +122,10 @@ popd
 echo.
 echo === dotnet publish (%ENV_NAME%, self-contained %SELF_CONTAINED%) ===
 if exist publish rmdir /s /q publish
-call dotnet publish src\TowerHaat.Api --configuration Release --output publish --runtime win-x64 --self-contained %SELF_CONTAINED% -p:EnvironmentName=%ENV_NAME% || goto failed
+rem No runtime given: the app is built for any CPU, because MonsterASP runs sites as 32-bit (x86)
+rem processes and a win-x64 build cannot load there. A self-contained build must pick one: x86.
+if "%SELF_CONTAINED%"=="true" (set "RUNTIME_ARGS=--runtime win-x86 --self-contained true") else (set "RUNTIME_ARGS=--self-contained false")
+call dotnet publish src\TowerHaat.Api --configuration Release --output publish %RUNTIME_ARGS% -p:EnvironmentName=%ENV_NAME% || goto failed
 
 rem AppOffline stops the site while files are copied; DoNotDeleteRule and the App_Data skip keep
 rem uploaded photos, logs, backups and the settings file on the server.

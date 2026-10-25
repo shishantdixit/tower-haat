@@ -47,10 +47,12 @@ jobs:
         working-directory: web
         run: npm run build
 
+      # No runtime for the normal build: it runs on any CPU, because MonsterASP runs sites as 32-bit
+      # (x86) processes and a win-x64 build cannot load there. A self-contained build must pick one: x86.
       - name: Publish
         run: >
           dotnet publish src/TowerHaat.Api --configuration Release --output publish
-          --runtime win-x64 --self-contained ${{ inputs.self_contained }}
+          ${{ inputs.self_contained && '--runtime win-x86 --self-contained true' || '--self-contained false' }}
           -p:EnvironmentName=${{ inputs.environment == 'production' && 'Production' || 'Staging' }}
 
       - uses: actions/upload-artifact@v4
