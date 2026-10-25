@@ -4,6 +4,7 @@ using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
 using TowerHaat.Domain.Common;
+using TowerHaat.Domain.Notifications;
 using TowerHaat.Domain.Orders;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
@@ -46,6 +47,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
     public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
 
     public DbSet<Payment> Payments => Set<Payment>();
+
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     // Read by the query filter on every query, so the filter follows this context's society.
     private Guid? CurrentSocietyId => currentSociety.SocietyId;

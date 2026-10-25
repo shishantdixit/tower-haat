@@ -79,6 +79,9 @@ public class Order : Entity, ITenantEntity
 
     public DateTime StatusChangedAt { get; private set; }
 
+    /// <summary>When the owner was reminded about this order still waiting to be accepted.</summary>
+    public DateTime? ReminderSentAt { get; private set; }
+
     /// <summary>Delivery time the customer asked for (UTC); null means as soon as possible.</summary>
     public DateTime? PreferredTime { get; private set; }
 
@@ -108,6 +111,14 @@ public class Order : Entity, ITenantEntity
     public IReadOnlyList<OrderItem> Items => _items;
 
     public IReadOnlyList<OrderStatusChange> History => _history;
+
+    /// <summary>Owners are reminded once, a third of the way to expiry, if they have not responded.</summary>
+    public static readonly TimeSpan RemindAfter = TimeSpan.FromMinutes(10);
+
+    public bool IsDueForReminder(DateTime now) =>
+        Status == OrderStatus.Placed && ReminderSentAt is null && now >= PlacedAt + RemindAfter && !IsDueToExpire(now);
+
+    public void MarkReminded(DateTime now) => ReminderSentAt = now;
 
     public bool IsDueToExpire(DateTime now) => Status == OrderStatus.Placed && now >= PlacedAt + AcceptWithin;
 

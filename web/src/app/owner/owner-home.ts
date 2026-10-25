@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { RouterLink } from '@angular/router';
 import { OwnerApi } from '../core/api/business.api';
 import { errorMessage } from '../core/api/errors';
+import { NotifyCard } from '../shared/notify-card';
 import { OwnerStore } from './owner-store';
 
 /** "My business": start selling, or see status, switch open/closed and manage the business. */
 @Component({
   selector: 'app-owner-home',
-  imports: [RouterLink],
+  imports: [RouterLink, NotifyCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (error()) {
@@ -67,6 +68,7 @@ import { OwnerStore } from './owner-store';
                 {{ b.settings.isOpen ? 'Close now' : 'Open now' }}
               </button>
             </div>
+            <app-notify-card what="new order alerts" />
           }
         }
 

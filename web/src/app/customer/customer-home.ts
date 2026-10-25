@@ -12,17 +12,20 @@ import { errorMessage } from '../core/api/errors';
 import { Directory } from '../core/api/models';
 import { AuthService } from '../core/auth/auth.service';
 import { Time12Pipe } from '../shared/formatting';
+import { InstallCard } from '../shared/install-card';
 
 /** C-02: the society's businesses by category, open ones first. */
 @Component({
   selector: 'app-customer-home',
-  imports: [RouterLink, Time12Pipe],
+  imports: [RouterLink, Time12Pipe, InstallCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1>Namaste, {{ firstName() }}</h1>
     <p class="muted">
       {{ profile()?.societyName }} · Tower {{ profile()?.tower }}, Flat {{ profile()?.flat }}
     </p>
+
+    <app-install-card />
 
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>

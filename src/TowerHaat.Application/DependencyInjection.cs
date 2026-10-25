@@ -4,6 +4,7 @@ using TowerHaat.Application.Auth;
 using TowerHaat.Application.Businesses;
 using TowerHaat.Application.Catalog;
 using TowerHaat.Application.Directory;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Application.Orders;
 using TowerHaat.Application.Residents;
 using TowerHaat.Application.Societies;
@@ -30,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<CatalogService>();
         services.AddScoped<BusinessAdminService>();
         services.AddScoped<DirectoryService>();
+        services.AddScoped<OrderNotifications>();
+        services.AddScoped<PushSubscriptionService>();
         services.AddScoped<OrderViews>();
         services.AddScoped<OrderService>();
         services.AddScoped<OwnerOrderService>();

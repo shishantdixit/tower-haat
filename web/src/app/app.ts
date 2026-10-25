@@ -1,6 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth/auth.service';
+import { InstallService } from './core/push/install.service';
+import { PushService } from './core/push/push.service';
+import { playChime } from './core/realtime/chime';
+import { RealtimeService } from './core/realtime/realtime.service';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +27,16 @@ import { AuthService } from './core/auth/auth.service';
         </a>
       }
     </header>
+    @if (newOrder(); as orderId) {
+      <a
+        class="new-order"
+        role="alert"
+        [routerLink]="['/owner/orders', orderId]"
+        (click)="newOrder.set(null)"
+      >
+        <strong>New order!</strong> Tap to view and accept
+      </a>
+    }
     <main class="content">
       <router-outlet />
     </main>
@@ -68,6 +90,23 @@ import { AuthService } from './core/auth/auth.service';
       font-weight: 600;
       opacity: 0.9;
     }
+    .new-order {
+      position: sticky;
+      top: 56px;
+      z-index: 2;
+      display: block;
+      padding: 14px var(--th-gap);
+      background: var(--th-success);
+      color: #fff;
+      text-decoration: none;
+      text-align: center;
+      animation: pulse 1s ease-in-out 3;
+    }
+    @keyframes pulse {
+      50% {
+        opacity: 0.75;
+      }
+    }
     .content {
       flex: 1;
       width: 100%;
@@ -107,8 +146,35 @@ import { AuthService } from './core/auth/auth.service';
 export class App {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly push = inject(PushService);
+
+  /** The latest new order for an owner, shown as a banner with a chime (B-05). */
+  protected readonly newOrder = signal<string | null>(null);
+  private bannerTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    inject(InstallService);
+    inject(RealtimeService)
+      .orderChanged.pipe(takeUntilDestroyed())
+      .subscribe((event) => {
+        if (event.isNewOrder) {
+          playChime();
+          this.newOrder.set(event.orderId);
+          clearTimeout(this.bannerTimer);
+          this.bannerTimer = setTimeout(() => this.newOrder.set(null), 60_000);
+        }
+      });
+
+    // A browser that was already subscribed now belongs to whoever signed in.
+    effect(() => {
+      if (this.auth.signedIn()) {
+        untracked(() => void this.push.resync());
+      }
+    });
+  }
 
   protected async logout(): Promise<void> {
+    await this.push.forgetDevice();
     await this.auth.logout();
     await this.router.navigate(['/login']);
   }

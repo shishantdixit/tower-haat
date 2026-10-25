@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RealtimeService } from '../core/realtime/realtime.service';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
@@ -16,7 +18,7 @@ const TABS: { tab: OwnerOrderTab; label: string }[] = [
   { tab: 'Done', label: 'Done' },
 ];
 
-/** B-05: orders by status. Refreshes on its own; sound and push arrive in M5. */
+/** B-05: orders by status, updated live; a slow refresh covers dropped connections. */
 @Component({
   selector: 'app-owner-orders',
   imports: [RouterLink, DatePipe, RupeesPipe, OrderStatusPipe, PaymentLabelPipe],
@@ -143,7 +145,10 @@ export default class Orders implements OnInit {
   protected readonly minutesLeft = minutesLeft;
 
   constructor() {
-    pollWhileVisible(() => this.load());
+    inject(RealtimeService)
+      .orderChanged.pipe(takeUntilDestroyed())
+      .subscribe(() => void this.load());
+    pollWhileVisible(() => this.load(), 60000);
   }
 
   ngOnInit(): Promise<void> {

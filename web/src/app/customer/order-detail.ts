@@ -1,4 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { RealtimeService } from '../core/realtime/realtime.service';
+import { NotifyCard } from '../shared/notify-card';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
 import { Order } from '../core/api/models';
@@ -13,7 +17,15 @@ import { pollWhileVisible } from '../shared/poll';
 /** C-07 order status and timeline; C-08 payment; C-09 cancel while it is still waiting to be accepted. */
 @Component({
   selector: 'app-order-detail',
-  imports: [RouterLink, OrderStatusPipe, OrderView, PaymentLabelPipe, RupeesPipe, UpiPay],
+  imports: [
+    RouterLink,
+    OrderStatusPipe,
+    OrderView,
+    PaymentLabelPipe,
+    RupeesPipe,
+    UpiPay,
+    NotifyCard,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p><a routerLink="/customer/orders">← My orders</a></p>
@@ -31,6 +43,10 @@ import { pollWhileVisible } from '../shared/poll';
           </p>
         }
       </div>
+
+      @if (isOpen(o.status)) {
+        <app-notify-card what="updates on this order" />
+      }
 
       <div class="card payment" [class.attention]="o.payment.upi">
         <h2>Payment</h2>
@@ -111,12 +127,18 @@ export default class OrderDetail implements OnInit {
   protected readonly minutesLeft = minutesLeft;
 
   constructor() {
+    inject(RealtimeService)
+      .orderChanged.pipe(
+        filter((e) => e.orderId === this.orderId()),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => void this.load());
     pollWhileVisible(() => {
       const order = this.order();
       if (order && (isOpen(order.status) || order.payment.status === 'CustomerMarkedPaid')) {
         void this.load();
       }
-    });
+    }, 60000);
   }
 
   ngOnInit(): Promise<void> {

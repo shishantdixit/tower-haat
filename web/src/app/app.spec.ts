@@ -2,16 +2,49 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { Subject } from 'rxjs';
 import { App } from './app';
 import { AuthService } from './core/auth/auth.service';
+import { PushService } from './core/push/push.service';
+import { OrderChanged, RealtimeService } from './core/realtime/realtime.service';
 import { authResponse } from './core/auth/testing';
 
 describe('App', () => {
+  const orderChanged = new Subject<OrderChanged>();
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RealtimeService, useValue: { orderChanged } },
+        {
+          provide: PushService,
+          useValue: { resync: async () => undefined, forgetDevice: async () => undefined },
+        },
+      ],
     }).compileComponents();
+  });
+
+  it('shows a banner when a new order arrives live', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+
+    orderChanged.next({
+      orderId: 'o1',
+      businessId: 'b1',
+      status: 'Placed',
+      paymentStatus: 'Pending',
+      isNewOrder: true,
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector('.new-order');
+    expect(banner?.textContent).toContain('New order!');
+    expect(banner?.getAttribute('href')).toBe('/owner/orders/o1');
   });
 
   it('hides the tabs until the resident has signed up', async () => {

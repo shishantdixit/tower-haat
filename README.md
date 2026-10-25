@@ -23,6 +23,7 @@ Set these per environment (MonsterASP app settings or environment variables), ne
 - `Auth__Otp__HashKey`: random, at least 32 characters
 - `Auth__AdminPhones__0`: your number
 - `Jobs__Key`: random, at least 32 characters. Create a MonsterASP scheduled task that every 5 minutes sends `POST https://towerhaat.com/api/jobs/expire-orders` with the header `X-Job-Key: <the key>`; it expires orders nobody accepted within 30 minutes and wakes the site if IIS unloaded it.
+- `Push__PublicKey` and `Push__PrivateKey`: VAPID keys for web push, generated once with `dotnet run --project src/TowerHaat.Api -- generate-vapid-keys`. Keep them stable: new keys make every phone subscribe again. `Push__Subject`: a `mailto:` contact.
 - `Storage__RootPath`: optional; folder for uploaded photos (default `App_Data/uploads` under the site). Include it in backups.
 
 ## Local setup
@@ -83,7 +84,7 @@ cd web && npm run build && cd ..              # writes into src/TowerHaat.Api/ww
 dotnet run --project src/TowerHaat.Api        # app and API on http://localhost:5080
 ```
 
-The service worker is only active in production builds.
+The service worker, and so web push and the "Turn on notifications" card, is only active in production builds. Development settings include a throwaway VAPID key pair.
 
 ## Test
 

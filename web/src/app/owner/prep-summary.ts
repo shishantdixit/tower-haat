@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RealtimeService } from '../core/realtime/realtime.service';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
 import { PrepSummary as Summary } from '../core/api/models';
@@ -91,7 +93,10 @@ export default class PrepSummary implements OnInit {
   protected readonly error = signal<string | null>(null);
 
   constructor() {
-    pollWhileVisible(() => this.load(), 30000);
+    inject(RealtimeService)
+      .orderChanged.pipe(takeUntilDestroyed())
+      .subscribe(() => void this.load());
+    pollWhileVisible(() => this.load(), 60000);
   }
 
   ngOnInit(): Promise<void> {

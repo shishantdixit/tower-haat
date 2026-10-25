@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Catalog;
 using TowerHaat.Application.Common;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
@@ -11,7 +12,8 @@ using TowerHaat.Domain.Orders;
 namespace TowerHaat.Application.Orders;
 
 /// <summary>The customer's side of ordering: checkout (C-06), their orders (C-07) and cancelling (C-09).</summary>
-public sealed class OrderService(IAppDbContext db, ICurrentSociety society, OrderViews views, TimeProvider time)
+public sealed class OrderService(
+    IAppDbContext db, ICurrentSociety society, OrderViews views, OrderNotifications notifications, TimeProvider time)
 {
     public const int MaxNoteLength = 300;
     public const int MaxLines = 30;
@@ -89,6 +91,7 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
             try
             {
                 await db.SaveChangesAsync(cancellationToken);
+                await notifications.NewOrderAsync(order, cancellationToken);
                 return await views.ToResponseAsync(order, cancellationToken);
             }
             catch (DbUpdateException) when (attempt < 3)
@@ -138,6 +141,7 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.StatusChangedAsync(order, cancellationToken);
         return await views.ToResponseAsync(order, cancellationToken);
     }
 
@@ -158,6 +162,7 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.PaymentChangedAsync(order, cancellationToken);
         return await views.ToResponseAsync(order, cancellationToken);
     }
 

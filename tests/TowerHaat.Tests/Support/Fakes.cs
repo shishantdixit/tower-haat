@@ -1,4 +1,5 @@
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Notifications;
 
 namespace TowerHaat.Tests.Support;
 
@@ -71,4 +72,66 @@ public static class TestImages
     public static MemoryStream Jpeg() => new([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01]);
 
     public static MemoryStream NotAnImage() => new("<html>not an image</html>"u8.ToArray());
+}
+
+public sealed class CapturingNotificationQueue : INotificationQueue
+{
+    private readonly List<UserNotification> _items = [];
+
+    public IReadOnlyList<UserNotification> Items
+    {
+        get
+        {
+            lock (_items)
+            {
+                return _items.ToList();
+            }
+        }
+    }
+
+    public void Enqueue(UserNotification notification)
+    {
+        lock (_items)
+        {
+            _items.Add(notification);
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_items)
+        {
+            _items.Clear();
+        }
+    }
+}
+
+public sealed class CapturingPushSender : IPushSender
+{
+    private readonly List<(PushTarget Target, string Payload)> _sent = [];
+
+    public HashSet<string> GoneEndpoints { get; } = [];
+
+    public bool IsConfigured => true;
+
+    public IReadOnlyList<(PushTarget Target, string Payload)> Sent
+    {
+        get
+        {
+            lock (_sent)
+            {
+                return _sent.ToList();
+            }
+        }
+    }
+
+    public Task<PushResult> SendAsync(PushTarget target, string payloadJson, string? topic, CancellationToken cancellationToken)
+    {
+        lock (_sent)
+        {
+            _sent.Add((target, payloadJson));
+        }
+
+        return Task.FromResult(GoneEndpoints.Contains(target.Endpoint) ? PushResult.Gone : PushResult.Sent);
+    }
 }

@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { RealtimeService } from '../core/realtime/realtime.service';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
 import { Order, PaymentAction } from '../core/api/models';
@@ -180,6 +183,12 @@ export default class OwnerOrder implements OnInit {
 
   constructor() {
     // A new order can be cancelled by the customer or expire while the owner looks at it.
+    inject(RealtimeService)
+      .orderChanged.pipe(
+        filter((e) => e.orderId === this.orderId()),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => void this.load());
     pollWhileVisible(() => {
       const order = this.order();
       return (
@@ -190,7 +199,7 @@ export default class OwnerOrder implements OnInit {
             isOpen(order.status))) &&
         this.load()
       );
-    });
+    }, 60000);
   }
 
   ngOnInit(): Promise<void> {

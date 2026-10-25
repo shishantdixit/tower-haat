@@ -22,6 +22,15 @@ export class AuthService {
     return this.session()?.accessToken ?? null;
   }
 
+  /** A token valid for at least another minute, refreshing first if needed (for long-lived connections). */
+  async freshAccessToken(): Promise<string | null> {
+    const session = this.session();
+    if (session && Date.parse(session.accessTokenExpiresAt) - Date.now() < 60_000) {
+      await this.refresh();
+    }
+    return this.accessToken;
+  }
+
   requestOtp(phone: string): Promise<OtpRequested> {
     return firstValueFrom(this.http.post<OtpRequested>('/api/auth/otp', { phone }));
   }

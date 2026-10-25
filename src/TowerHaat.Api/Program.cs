@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TowerHaat.Api.Admin;
@@ -12,6 +13,7 @@ using TowerHaat.Api.Errors;
 using TowerHaat.Api.Health;
 using TowerHaat.Api.Jobs;
 using TowerHaat.Api.Media;
+using TowerHaat.Api.Notifications;
 using TowerHaat.Api.Orders;
 using TowerHaat.Api.Residents;
 using TowerHaat.Api.Societies;
@@ -19,7 +21,14 @@ using TowerHaat.Api.Tenancy;
 using TowerHaat.Application;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Auth;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Infrastructure;
+
+if (args is ["generate-vapid-keys"])
+{
+    PushEndpoints.PrintNewVapidKeys();
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +58,12 @@ builder.Services.AddOptions<JwtOptions>()
 
 builder.Services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
+builder.Services.AddSingleton<ChannelNotificationQueue>();
+builder.Services.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<ChannelNotificationQueue>());
+builder.Services.AddHostedService<NotificationWorker>();
+
 builder.Services.AddOptions<JobOptions>().Bind(builder.Configuration.GetSection(JobOptions.Section));
 builder.Services.AddHostedService<OrderExpiryWorker>();
 
@@ -66,6 +81,20 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             NameClaimType = AppClaims.UserId,
             RoleClaimType = AppClaims.Role,
             ClockSkew = TimeSpan.FromSeconds(30),
+        };
+
+        // WebSockets cannot send headers, so the hub takes the token from the query string.
+        bearer.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.HttpContext.Request.Path.StartsWithSegments(OrdersHub.Path))
+                {
+                    context.Token = context.Request.Query["access_token"];
+                }
+
+                return Task.CompletedTask;
+            },
         };
     });
 
@@ -108,10 +137,12 @@ app.MapAdminBusinessEndpoints();
 app.MapDirectoryEndpoints();
 app.MapOrderEndpoints();
 app.MapJobEndpoints();
+app.MapPushEndpoints();
+app.MapHub<OrdersHub>(OrdersHub.Path);
 app.MapMediaEndpoints();
 
-// Angular routes get index.html; files (nonfile) and unknown /api and /media routes stay 404.
-app.MapFallbackToFile("{*path:nonfile:regex(^(?!(api|media)(/|$)))}", "index.html");
+// Angular routes get index.html; files (nonfile) and unknown /api, /media and /hubs routes stay 404.
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!(api|media|hubs)(/|$)))}", "index.html");
 
 app.Run();
 

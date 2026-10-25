@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Orders;
 
 namespace TowerHaat.Application.Orders;
 
 /// <summary>Builds order responses and expires overdue orders before they are shown.</summary>
-public sealed class OrderViews(IAppDbContext db, TimeProvider time)
+public sealed class OrderViews(IAppDbContext db, OrderNotifications notifications, TimeProvider time)
 {
     /// <summary>
     /// Expires every Placed order of the current society that waited too long. Runs before orders are
@@ -28,6 +29,41 @@ public sealed class OrderViews(IAppDbContext db, TimeProvider time)
 
         due.ForEach(o => o.Expire(now));
         await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var order in due)
+        {
+            await notifications.StatusChangedAsync(order, cancellationToken);
+        }
+
+        return due.Count;
+    }
+
+    /// <summary>Reminds owners once about orders that have waited 10 minutes (run by the job, not on reads).</summary>
+    public async Task<int> RemindDueAsync(CancellationToken cancellationToken)
+    {
+        var now = time.GetUtcNow().UtcDateTime;
+        var since = now - Order.RemindAfter;
+        var due = (await db.Orders
+                .Include(o => o.Items)
+                .Include(o => o.Payment)
+                .Where(o => o.Status == OrderStatus.Placed && o.ReminderSentAt == null && o.PlacedAt <= since)
+                .ToListAsync(cancellationToken))
+            .Where(o => o.IsDueForReminder(now))
+            .ToList();
+
+        if (due.Count == 0)
+        {
+            return 0;
+        }
+
+        due.ForEach(o => o.MarkReminded(now));
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var order in due)
+        {
+            await notifications.ReminderAsync(order, cancellationToken);
+        }
+
         return due.Count;
     }
 

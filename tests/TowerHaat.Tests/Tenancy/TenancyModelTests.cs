@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Common;
+using TowerHaat.Domain.Notifications;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
 using TowerHaat.Infrastructure.Persistence;
@@ -21,6 +22,7 @@ public sealed class TenancyModelTests : IDisposable
         typeof(RefreshToken),
         typeof(BusinessType),
         typeof(Category),
+        typeof(PushSubscription),
     ];
 
     private readonly TestDatabase _database = new();

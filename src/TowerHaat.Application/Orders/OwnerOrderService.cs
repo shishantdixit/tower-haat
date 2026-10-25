@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Common;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Orders;
@@ -12,7 +13,7 @@ namespace TowerHaat.Application.Orders;
 /// An owner only ever sees orders placed with their own business, so the customer's phone and flat
 /// stay private to the business serving that order.
 /// </summary>
-public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimeProvider time)
+public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, OrderNotifications notifications, TimeProvider time)
 {
     public const int MaxReasonLength = 300;
 
@@ -62,16 +63,16 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
     }
 
     public Task<OrderResponse> AcceptAsync(Guid userId, Guid orderId, CancellationToken cancellationToken) =>
-        ChangeAsync(userId, orderId, (o, now) => o.Accept(userId, now), cancellationToken);
+        ChangeAsync(userId, orderId, (o, now) => o.Accept(userId, now), notifications.StatusChangedAsync, cancellationToken);
 
     public Task<OrderResponse> RejectAsync(Guid userId, Guid orderId, ReasonRequest request, CancellationToken cancellationToken) =>
-        ChangeAsync(userId, orderId, (o, now) => o.Reject(userId, Reason(request), now), cancellationToken);
+        ChangeAsync(userId, orderId, (o, now) => o.Reject(userId, Reason(request), now), notifications.StatusChangedAsync, cancellationToken);
 
     public Task<OrderResponse> AdvanceAsync(Guid userId, Guid orderId, CancellationToken cancellationToken) =>
-        ChangeAsync(userId, orderId, (o, now) => o.Advance(userId, now), cancellationToken);
+        ChangeAsync(userId, orderId, (o, now) => o.Advance(userId, now), notifications.StatusChangedAsync, cancellationToken);
 
     public Task<OrderResponse> CancelAsync(Guid userId, Guid orderId, ReasonRequest request, CancellationToken cancellationToken) =>
-        ChangeAsync(userId, orderId, (o, now) => o.CancelByOwner(userId, Reason(request), now), cancellationToken);
+        ChangeAsync(userId, orderId, (o, now) => o.CancelByOwner(userId, Reason(request), now), notifications.StatusChangedAsync, cancellationToken);
 
     /// <summary>B-08: UPI received, cash collected, disputed or refunded.</summary>
     public Task<OrderResponse> UpdatePaymentAsync(Guid userId, Guid orderId, PaymentActionRequest request, CancellationToken cancellationToken)
@@ -96,7 +97,7 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
                 default:
                     throw new AppException(ErrorKind.Validation, "Unknown payment action.");
             }
-        }, cancellationToken);
+        }, notifications.PaymentChangedAsync, cancellationToken);
     }
 
     /// <summary>
@@ -136,7 +137,11 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
     }
 
     private async Task<OrderResponse> ChangeAsync(
-        Guid userId, Guid orderId, Action<Order, DateTime> change, CancellationToken cancellationToken)
+        Guid userId,
+        Guid orderId,
+        Action<Order, DateTime> change,
+        Func<Order, CancellationToken, Task> notify,
+        CancellationToken cancellationToken)
     {
         await views.ExpireDueAsync(cancellationToken);
         var order = await FindAsync(userId, orderId, cancellationToken);
@@ -151,6 +156,7 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await notify(order, cancellationToken);
         return await views.ToResponseAsync(order, cancellationToken);
     }
 

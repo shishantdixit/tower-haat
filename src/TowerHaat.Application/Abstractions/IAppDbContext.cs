@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
+using TowerHaat.Domain.Notifications;
 using TowerHaat.Domain.Orders;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
@@ -41,6 +42,8 @@ public interface IAppDbContext
     DbSet<OrderStatusChange> OrderStatusChanges { get; }
 
     DbSet<Payment> Payments { get; }
+
+    DbSet<PushSubscription> PushSubscriptions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

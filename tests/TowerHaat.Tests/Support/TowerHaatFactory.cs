@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Infrastructure.Persistence;
 
 namespace TowerHaat.Tests.Support;
@@ -25,6 +26,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
     public CapturingSmsSender Sms { get; } = new();
 
     public InMemoryFileStorage Files { get; } = new();
+
+    public CapturingPushSender Push { get; } = new();
 
     public HttpClient CreateHttpsClient() =>
         CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
@@ -51,6 +54,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
             services.AddSingleton<ISmsSender>(Sms);
             services.RemoveAll<IFileStorage>();
             services.AddSingleton<IFileStorage>(Files);
+            services.RemoveAll<IPushSender>();
+            services.AddSingleton<IPushSender>(Push);
         });
     }
 

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RealtimeService } from '../core/realtime/realtime.service';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
@@ -79,6 +81,12 @@ export default class MyOrders implements OnInit {
   protected readonly orders = signal<OrderSummary[] | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly isOpen = isOpen;
+
+  constructor() {
+    inject(RealtimeService)
+      .orderChanged.pipe(takeUntilDestroyed())
+      .subscribe(() => void this.ngOnInit());
+  }
 
   async ngOnInit(): Promise<void> {
     try {

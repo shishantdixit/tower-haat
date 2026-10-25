@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using TowerHaat.Application.Businesses;
 using TowerHaat.Application.Catalog;
 using TowerHaat.Application.Directory;
+using TowerHaat.Application.Notifications;
 using TowerHaat.Application.Orders;
 using TowerHaat.Application.Tenancy;
 using TowerHaat.Domain.Businesses;
@@ -36,6 +37,8 @@ public sealed class BusinessHarness : IDisposable
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 10, 25, 6, 0, 0, TimeSpan.Zero));
 
     public InMemoryFileStorage Files { get; } = new();
+
+    public CapturingNotificationQueue Notifications { get; } = new();
 
     public Society OtherSociety { get; } = new("Other Society", "Noida");
 
@@ -93,7 +96,8 @@ public sealed class BusinessHarness : IDisposable
     {
         var db = Database.CreateContext(society);
         var owner = new OwnerBusinessService(db, society, Files, Time);
-        var views = new OrderViews(db, Time);
+        var notifications = new OrderNotifications(db, Notifications);
+        var views = new OrderViews(db, notifications, Time);
         return new Services(
             db,
             owner,
@@ -101,8 +105,10 @@ public sealed class BusinessHarness : IDisposable
             new BusinessAdminService(db, society, Time),
             new BusinessTypeService(db),
             new DirectoryService(db, society, Time),
-            new OrderService(db, society, views, Time),
-            new OwnerOrderService(db, views, Time));
+            new OrderService(db, society, views, notifications, Time),
+            new OwnerOrderService(db, views, notifications, Time),
+            views,
+            new PushSubscriptionService(db, Time));
     }
 
     public sealed record Services(
@@ -113,5 +119,7 @@ public sealed class BusinessHarness : IDisposable
         BusinessTypeService Types,
         DirectoryService Directory,
         OrderService Orders,
-        OwnerOrderService OwnerOrders);
+        OwnerOrderService OwnerOrders,
+        OrderViews Views,
+        PushSubscriptionService Push);
 }
