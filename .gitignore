@@ -30,3 +30,7 @@ coverage/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# Local deploy settings for publish.cmd (Web Deploy password)
+*.local.cmd
+publish/
