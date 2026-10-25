@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Common;
+using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Orders;
 
@@ -36,7 +37,8 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
             [OwnerOrderTab.Done] = done,
         };
 
-        var query = mine.Include(o => o.Items).AsQueryable();
+        var query = mine.Include(o => o.Items)
+            .Include(o => o.Payment).AsQueryable();
         query = tab switch
         {
             OwnerOrderTab.New => query.Where(o => o.Status == OrderStatus.Placed),
@@ -71,6 +73,32 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
     public Task<OrderResponse> CancelAsync(Guid userId, Guid orderId, ReasonRequest request, CancellationToken cancellationToken) =>
         ChangeAsync(userId, orderId, (o, now) => o.CancelByOwner(userId, Reason(request), now), cancellationToken);
 
+    /// <summary>B-08: UPI received, cash collected, disputed or refunded.</summary>
+    public Task<OrderResponse> UpdatePaymentAsync(Guid userId, Guid orderId, PaymentActionRequest request, CancellationToken cancellationToken)
+    {
+        var note = Validate.Optional(request.Note, "Note", MaxReasonLength);
+        return ChangeAsync(userId, orderId, (o, now) =>
+        {
+            switch (request.Action)
+            {
+                case PaymentAction.Confirm:
+                    o.ConfirmUpiReceived(now);
+                    break;
+                case PaymentAction.Collect:
+                    o.MarkCashCollected(now);
+                    break;
+                case PaymentAction.Dispute:
+                    o.DisputePayment(note, now);
+                    break;
+                case PaymentAction.Refund:
+                    o.MarkRefunded(now);
+                    break;
+                default:
+                    throw new AppException(ErrorKind.Validation, "Unknown payment action.");
+            }
+        }, cancellationToken);
+    }
+
     /// <summary>
     /// Item-wise totals for today's open orders (B-07): what is accepted and still to be made, and
     /// what is waiting to be accepted. Orders for tomorrow are left out.
@@ -83,6 +111,7 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
         var endOfToday = IndiaTime.StartOfTodayUtc(time).AddDays(1);
         var orders = await db.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payment)
             .Where(o => o.BusinessId == business.Id
                 && (o.Status == OrderStatus.Placed || o.Status == OrderStatus.Accepted || o.Status == OrderStatus.Preparing)
                 && (o.PreferredTime == null || o.PreferredTime < endOfToday))
@@ -135,6 +164,7 @@ public sealed class OwnerOrderService(IAppDbContext db, OrderViews views, TimePr
         var business = await MyBusinessAsync(userId, cancellationToken);
         return await db.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payment)
             .Include(o => o.History)
             .SingleOrDefaultAsync(o => o.Id == orderId && o.BusinessId == business.Id, cancellationToken)
             ?? throw new AppException(ErrorKind.NotFound, "Order not found.");

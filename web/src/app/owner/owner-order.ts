@@ -1,16 +1,17 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api/errors';
-import { Order } from '../core/api/models';
+import { Order, PaymentAction } from '../core/api/models';
 import { OwnerOrderApi } from '../core/api/order.api';
 import { OrderStatusPipe, isOpen, minutesLeft, nextStepLabel } from '../shared/order-status';
 import { OrderView } from '../shared/order-view';
+import { PaymentLabelPipe, isSettled } from '../shared/payment-status';
 import { pollWhileVisible } from '../shared/poll';
 
-/** B-06: accept or reject with a reason, move through the steps, cancel with a reason. */
+/** B-06: accept or reject with a reason, move through the steps, cancel with a reason. B-08: payment. */
 @Component({
   selector: 'app-owner-order',
-  imports: [RouterLink, OrderStatusPipe, OrderView],
+  imports: [RouterLink, OrderStatusPipe, OrderView, PaymentLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p><a routerLink="/owner/orders">← Orders</a></p>
@@ -36,6 +37,53 @@ import { pollWhileVisible } from '../shared/poll';
       </div>
 
       <app-order-view [order]="o" view="owner" />
+
+      @let payment = o.payment;
+      <div class="card stack payment">
+        <h2>Payment</h2>
+        <p>
+          {{ o.paymentMethod === 'Upi' ? 'UPI' : 'Cash' }} ·
+          <strong>{{ payment.status | paymentLabel: o.paymentMethod : 'owner' }}</strong>
+          @if (payment.utr) {
+            <br /><span class="muted">UTR {{ payment.utr }}</span>
+          }
+        </p>
+        @if (canConfirmUpi(o)) {
+          <button type="button" class="primary" [disabled]="busy()" (click)="pay('Confirm')">
+            UPI received
+          </button>
+        }
+        @if (o.paymentMethod === 'Upi' && payment.status === 'CustomerMarkedPaid') {
+          <textarea
+            #disputeNote
+            rows="2"
+            maxlength="300"
+            placeholder="Note for the customer (optional)"
+          ></textarea>
+          <button
+            type="button"
+            class="danger"
+            [disabled]="busy()"
+            (click)="pay('Dispute', disputeNote.value)"
+          >
+            Not received
+          </button>
+        }
+        @if (
+          o.paymentMethod === 'Cod' &&
+          payment.status === 'Pending' &&
+          (o.status === 'OutForDelivery' || o.status === 'Delivered')
+        ) {
+          <button type="button" class="primary" [disabled]="busy()" (click)="pay('Collect')">
+            Cash collected
+          </button>
+        }
+        @if (canRefund(o)) {
+          <button type="button" class="link" [disabled]="busy()" (click)="pay('Refund')">
+            I refunded this payment
+          </button>
+        }
+      </div>
 
       @if (isOpen(o.status)) {
         <div class="card stack actions">
@@ -104,8 +152,13 @@ import { pollWhileVisible } from '../shared/poll';
       text-align: center;
       text-decoration: none;
     }
-    .actions {
+    .actions,
+    .payment {
       margin-top: 16px;
+    }
+    .payment h2,
+    .payment p {
+      margin: 0;
     }
     .expires {
       margin: 0;
@@ -127,11 +180,53 @@ export default class OwnerOrder implements OnInit {
 
   constructor() {
     // A new order can be cancelled by the customer or expire while the owner looks at it.
-    pollWhileVisible(() => this.order()?.status === 'Placed' && this.load());
+    pollWhileVisible(() => {
+      const order = this.order();
+      return (
+        order &&
+        (order.status === 'Placed' ||
+          (order.paymentMethod === 'Upi' &&
+            order.payment.status === 'Pending' &&
+            isOpen(order.status))) &&
+        this.load()
+      );
+    });
   }
 
   ngOnInit(): Promise<void> {
     return this.load();
+  }
+
+  protected canConfirmUpi(order: Order): boolean {
+    return (
+      order.paymentMethod === 'Upi' &&
+      ['Pending', 'CustomerMarkedPaid', 'Disputed'].includes(order.payment.status) &&
+      !['Placed', 'Rejected', 'Expired', 'CancelledByCustomer'].includes(order.status)
+    );
+  }
+
+  protected canRefund(order: Order): boolean {
+    return (
+      isSettled(order.payment.status) ||
+      order.payment.status === 'CustomerMarkedPaid' ||
+      order.payment.status === 'Disputed'
+    );
+  }
+
+  protected async pay(action: PaymentAction, note = ''): Promise<void> {
+    if (action === 'Refund' && !confirm('Mark this payment as refunded to the customer?')) {
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      this.order.set(await this.api.payment(this.orderId(), action, note.trim() || null));
+    } catch (error) {
+      this.error.set(errorMessage(error));
+      await this.load();
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected next(order: Order): string | null {

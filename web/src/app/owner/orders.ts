@@ -6,6 +6,7 @@ import { OwnerOrderTab, OwnerOrders } from '../core/api/models';
 import { OwnerOrderApi } from '../core/api/order.api';
 import { RupeesPipe } from '../shared/formatting';
 import { OrderStatusPipe, minutesLeft } from '../shared/order-status';
+import { PaymentLabelPipe } from '../shared/payment-status';
 import { pollWhileVisible } from '../shared/poll';
 
 const TABS: { tab: OwnerOrderTab; label: string }[] = [
@@ -18,7 +19,7 @@ const TABS: { tab: OwnerOrderTab; label: string }[] = [
 /** B-05: orders by status. Refreshes on its own; sound and push arrive in M5. */
 @Component({
   selector: 'app-owner-orders',
-  imports: [RouterLink, DatePipe, RupeesPipe, OrderStatusPipe],
+  imports: [RouterLink, DatePipe, RupeesPipe, OrderStatusPipe, PaymentLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p><a routerLink="/owner">← My business</a></p>
@@ -61,7 +62,7 @@ const TABS: { tab: OwnerOrderTab; label: string }[] = [
             <span class="muted small">{{ o.itemsText }}</span>
             <span class="small">
               {{ o.placedAt | date: 'h:mm a' : '+0530' }} ·
-              {{ o.paymentMethod === 'Upi' ? 'UPI' : 'Cash' }}
+              {{ o.paymentStatus | paymentLabel: o.paymentMethod : 'owner' }}
               @if (o.preferredTime) {
                 · <strong>for {{ o.preferredTime | date: 'EEE h:mm a' : '+0530' }}</strong>
               }

@@ -5,12 +5,15 @@ import { Order } from '../core/api/models';
 import { OrderApi } from '../core/api/order.api';
 import { OrderStatusPipe, isOpen, minutesLeft } from '../shared/order-status';
 import { OrderView } from '../shared/order-view';
+import { PaymentLabelPipe } from '../shared/payment-status';
+import { RupeesPipe } from '../shared/formatting';
+import { UpiPay } from './upi-pay';
 import { pollWhileVisible } from '../shared/poll';
 
-/** C-07 order status and timeline; C-09 cancel while it is still waiting to be accepted. */
+/** C-07 order status and timeline; C-08 payment; C-09 cancel while it is still waiting to be accepted. */
 @Component({
   selector: 'app-order-detail',
-  imports: [RouterLink, OrderStatusPipe, OrderView],
+  imports: [RouterLink, OrderStatusPipe, OrderView, PaymentLabelPipe, RupeesPipe, UpiPay],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p><a routerLink="/customer/orders">← My orders</a></p>
@@ -26,6 +29,26 @@ import { pollWhileVisible } from '../shared/poll';
             If {{ o.businessName }} does not accept within {{ minutesLeft(o.expiresAt) }} minutes,
             the order is cancelled automatically.
           </p>
+        }
+      </div>
+
+      <div class="card payment" [class.attention]="o.payment.upi">
+        <h2>Payment</h2>
+        <p>
+          {{ o.paymentMethod === 'Upi' ? 'UPI' : 'Cash on delivery' }} ·
+          <strong>{{ o.payment.status | paymentLabel: o.paymentMethod }}</strong>
+        </p>
+        @if (o.payment.note) {
+          <p class="error">“{{ o.payment.note }}”</p>
+        }
+        @if (o.payment.upi; as upi) {
+          <app-upi-pay [orderId]="o.id" [upi]="upi" (paid)="order.set($event)" />
+        } @else if (o.paymentMethod === 'Upi' && o.status === 'Placed') {
+          <p class="muted">
+            You can pay {{ o.total | rupees }} by UPI once {{ o.businessName }} accepts the order.
+          </p>
+        } @else if (o.payment.utr) {
+          <p class="muted">UTR {{ o.payment.utr }}</p>
         }
       </div>
 
@@ -58,6 +81,18 @@ import { pollWhileVisible } from '../shared/poll';
     .actions {
       margin-top: 16px;
     }
+    .payment {
+      margin-bottom: 16px;
+    }
+    .payment h2 {
+      margin-top: 0;
+    }
+    .payment p {
+      margin: 0 0 8px;
+    }
+    .payment.attention {
+      border-color: var(--th-primary);
+    }
     .actions .button {
       text-align: center;
       text-decoration: none;
@@ -77,8 +112,8 @@ export default class OrderDetail implements OnInit {
 
   constructor() {
     pollWhileVisible(() => {
-      const status = this.order()?.status;
-      if (status && isOpen(status)) {
+      const order = this.order();
+      if (order && (isOpen(order.status) || order.payment.status === 'CustomerMarkedPaid')) {
         void this.load();
       }
     });

@@ -1,3 +1,4 @@
+using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Orders;
 
 namespace TowerHaat.Application.Orders;
@@ -44,6 +45,7 @@ public sealed record OrderResponse(
     decimal DeliveryCharge,
     decimal Total,
     PaymentMethod PaymentMethod,
+    PaymentResponse Payment,
     IReadOnlyList<OrderStepResponse> History);
 
 public sealed record OrderSummaryResponse(
@@ -60,7 +62,8 @@ public sealed record OrderSummaryResponse(
     string Flat,
     string ItemsText,
     decimal Total,
-    PaymentMethod PaymentMethod);
+    PaymentMethod PaymentMethod,
+    PaymentStatus PaymentStatus);
 
 /// <summary>Tabs of the owner's dashboard (B-05).</summary>
 public enum OwnerOrderTab

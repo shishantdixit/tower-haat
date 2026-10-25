@@ -35,7 +35,11 @@
             "outputPath": {
               "base": "../src/TowerHaat.Api/wwwroot",
               "browser": ""
-            }
+            },
+            "allowedCommonJsDependencies": [
+              "qrcode",
+              "dijkstrajs"
+            ]
           },
           "configurations": {
             "production": {

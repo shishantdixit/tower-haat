@@ -54,7 +54,8 @@ web/                         Angular PWA
 - **Live updates (M3 → M5):** order screens poll every 15 seconds while visible; M5 replaces this with SignalR and push.
 - **Rate limits:** only `/api/auth/otp` and `/api/auth/verify` are limited per IP (30 a minute), because a whole society may share one public IP and refresh runs on every app load. The PWA ends a session only when refresh returns 401.
 - **Entity ids:** generated in code, and every `Id` is configured `ValueGeneratedNever`, so EF inserts child rows added to a loaded parent (an order's history) instead of updating them.
-- **Payment statuses (M4):** include `Disputed` as an owner action alongside confirm, COD collected and refunded (B-08 omits it; the spec's payment table and edge cases include it).
+- **Payments (M4):** one `Payment` row per order, created with it. UPI: Pending → CustomerMarkedPaid (optional UTR) → Confirmed; the owner may confirm straight from Pending, or mark a claim Disputed (note shown to the customer), after which the customer can mark it paid again. COD: Pending → Collected, only once the order is out for delivery or delivered. Any payment that changed hands can be marked Refunded. The rules live on `Order` (`MarkPaidByCustomer`, `ConfirmUpiReceived`, `MarkCashCollected`, `DisputePayment`, `MarkRefunded`).
+- **UPI details (M4):** sent only while `Order.IsUpiPayable` (accepted through delivered, and not yet paid), built from the business's current UPI ID. `UpiLink` makes a `upi://pay` link with ID, name, amount and "TowerHaat order #N", no `tr` (apps reject it for personal UPI IDs); the PWA shows it as a button, a QR code (`qrcode`, loaded on demand) and the UPI ID to copy.
 
 ## Conventions
 

@@ -57,6 +57,7 @@ public class Order : Entity, ITenantEntity
             _items.Add(new OrderItem(this, item, quantity));
         }
 
+        Payment = new Payment(this);
         Subtotal = _items.Sum(i => i.LineTotal);
         DeliveryCharge = business.DeliveryCharge;
         Total = Subtotal + DeliveryCharge;
@@ -101,6 +102,8 @@ public class Order : Entity, ITenantEntity
 
     /// <summary>Sent by the app with each checkout, so a repeated tap returns the same order.</summary>
     public Guid IdempotencyKey { get; private set; }
+
+    public Payment Payment { get; private set; } = null!;
 
     public IReadOnlyList<OrderItem> Items => _items;
 
@@ -152,6 +155,75 @@ public class Order : Entity, ITenantEntity
         }
 
         Move(OrderStatus.Expired, changedByUserId: null, reason: null, PlacedAt + AcceptWithin, OrderStatus.Placed);
+    }
+
+    /// <summary>
+    /// UPI can be paid once the business has accepted (rule 5), and until the order ends badly.
+    /// A cancelled-by-owner order is not payable: any money already sent is refunded instead.
+    /// </summary>
+    public bool IsUpiPayable =>
+        PaymentMethod == PaymentMethod.Upi
+        && Status is OrderStatus.Accepted or OrderStatus.Preparing or OrderStatus.OutForDelivery or OrderStatus.Delivered
+        && Payment.Status is PaymentStatus.Pending or PaymentStatus.Disputed;
+
+    /// <summary>C-08: the customer says they paid by UPI, optionally with the transaction reference.</summary>
+    public void MarkPaidByCustomer(string? utr, DateTime now)
+    {
+        if (PaymentMethod != PaymentMethod.Upi)
+        {
+            throw new InvalidOperationException("This order is cash on delivery.");
+        }
+
+        if (!IsUpiPayable)
+        {
+            throw new InvalidOperationException(Status == OrderStatus.Placed
+                ? "You can pay once the business accepts your order."
+                : "This order cannot be paid now.");
+        }
+
+        Payment.MarkPaid(utr, now);
+    }
+
+    /// <summary>B-08: the owner saw the UPI money arrive.</summary>
+    public void ConfirmUpiReceived(DateTime now)
+    {
+        RequireMethod(PaymentMethod.Upi);
+        if (Status is OrderStatus.Placed or OrderStatus.Rejected or OrderStatus.Expired or OrderStatus.CancelledByCustomer)
+        {
+            throw new InvalidOperationException("Accept the order before confirming its payment.");
+        }
+
+        Payment.Confirm(now);
+    }
+
+    /// <summary>B-08: the owner took the cash at the door.</summary>
+    public void MarkCashCollected(DateTime now)
+    {
+        RequireMethod(PaymentMethod.Cod);
+        if (Status is not (OrderStatus.OutForDelivery or OrderStatus.Delivered))
+        {
+            throw new InvalidOperationException("Cash is collected at delivery.");
+        }
+
+        Payment.Collect(now);
+    }
+
+    /// <summary>The customer says they paid but no money arrived.</summary>
+    public void DisputePayment(string? note, DateTime now)
+    {
+        RequireMethod(PaymentMethod.Upi);
+        Payment.Dispute(note, now);
+    }
+
+    /// <summary>The owner returned the money, outside TowerHaat.</summary>
+    public void MarkRefunded(DateTime now) => Payment.Refund(now);
+
+    private void RequireMethod(PaymentMethod method)
+    {
+        if (PaymentMethod != method)
+        {
+            throw new InvalidOperationException(method == PaymentMethod.Upi ? "This order is cash on delivery." : "This order is paid by UPI.");
+        }
     }
 
     private void Move(OrderStatus to, Guid? changedByUserId, string? reason, DateTime now, params OrderStatus[] from)

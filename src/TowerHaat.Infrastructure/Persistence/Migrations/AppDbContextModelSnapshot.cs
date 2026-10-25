@@ -677,6 +677,50 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                     b.ToTable("OrderStatusChanges");
                 });
 
+            modelBuilder.Entity("TowerHaat.Domain.Orders.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("MarkedPaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Utr")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("SocietyId");
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
                 {
                     b.Property<Guid>("Id")
@@ -955,6 +999,21 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TowerHaat.Domain.Orders.Payment", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Orders.Order", null)
+                        .WithOne("Payment")
+                        .HasForeignKey("TowerHaat.Domain.Orders.Payment", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
                 {
                     b.HasOne("TowerHaat.Domain.Societies.Society", null)
@@ -1013,6 +1072,9 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                     b.Navigation("History");
 
                     b.Navigation("Items");
+
+                    b.Navigation("Payment")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>

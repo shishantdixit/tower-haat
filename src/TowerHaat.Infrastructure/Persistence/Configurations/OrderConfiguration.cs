@@ -27,6 +27,7 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasMany(o => o.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(o => o.Items).HasField("_items");
+        builder.HasOne(o => o.Payment).WithOne().HasForeignKey<Payment>(p => p.OrderId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(o => o.History).WithOne().HasForeignKey(h => h.OrderId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(o => o.History).HasField("_history");
     }
@@ -47,5 +48,14 @@ internal sealed class OrderStatusChangeConfiguration : IEntityTypeConfiguration<
     public void Configure(EntityTypeBuilder<OrderStatusChange> builder)
     {
         builder.Property(h => h.Reason).HasMaxLength(300);
+    }
+}
+
+internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
+{
+    public void Configure(EntityTypeBuilder<Payment> builder)
+    {
+        builder.Property(p => p.Utr).HasMaxLength(35);
+        builder.Property(p => p.Note).HasMaxLength(300);
     }
 }

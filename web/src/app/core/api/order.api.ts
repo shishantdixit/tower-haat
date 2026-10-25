@@ -6,6 +6,7 @@ import {
   OrderSummary,
   OwnerOrders,
   OwnerOrderTab,
+  PaymentAction,
   PlaceOrderRequest,
   PrepSummary,
 } from './models';
@@ -29,6 +30,11 @@ export class OrderApi {
 
   cancel(orderId: string): Promise<Order> {
     return firstValueFrom(this.http.post<Order>(`/api/orders/${orderId}/cancel`, null));
+  }
+
+  /** C-08: "I've paid", with the UPI reference if known. */
+  markPaid(orderId: string, utr: string | null): Promise<Order> {
+    return firstValueFrom(this.http.post<Order>(`/api/orders/${orderId}/paid`, { utr }));
   }
 }
 
@@ -60,6 +66,13 @@ export class OwnerOrderApi {
 
   cancel(orderId: string, reason: string): Promise<Order> {
     return firstValueFrom(this.http.post<Order>(`${this.base}/${orderId}/cancel`, { reason }));
+  }
+
+  /** B-08: UPI received, cash collected, disputed or refunded. */
+  payment(orderId: string, action: PaymentAction, note: string | null = null): Promise<Order> {
+    return firstValueFrom(
+      this.http.post<Order>(`${this.base}/${orderId}/payment`, { action, note }),
+    );
   }
 
   prepSummary(): Promise<PrepSummary> {

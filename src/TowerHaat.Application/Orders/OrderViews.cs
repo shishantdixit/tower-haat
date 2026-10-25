@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
+using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Orders;
 
 namespace TowerHaat.Application.Orders;
@@ -16,6 +17,7 @@ public sealed class OrderViews(IAppDbContext db, TimeProvider time)
         var now = time.GetUtcNow().UtcDateTime;
         var cutOff = now - Order.AcceptWithin;
         var due = await db.Orders
+            .Include(o => o.Payment)
             .Where(o => o.Status == OrderStatus.Placed && o.PlacedAt <= cutOff)
             .ToListAsync(cancellationToken);
 
@@ -33,7 +35,7 @@ public sealed class OrderViews(IAppDbContext db, TimeProvider time)
     {
         var business = await db.Businesses
             .Where(b => b.Id == order.BusinessId)
-            .Select(b => new { b.Name, b.WhatsAppPhone })
+            .Select(b => new { b.Name, b.WhatsAppPhone, b.UpiId })
             .SingleAsync(cancellationToken);
         var history = order.History.Count > 0
             ? order.History.ToList()
@@ -59,6 +61,7 @@ public sealed class OrderViews(IAppDbContext db, TimeProvider time)
             order.DeliveryCharge,
             order.Total,
             order.PaymentMethod,
+            Payment(order, business.Name, business.UpiId),
             history.OrderBy(h => h.At).Select(h => new OrderStepResponse(h.Status, h.Reason, h.At)).ToList());
     }
 
@@ -84,8 +87,19 @@ public sealed class OrderViews(IAppDbContext db, TimeProvider time)
                 o.Flat,
                 string.Join(", ", o.Items.Select(i => $"{i.Quantity} × {i.NameSnapshot}")),
                 o.Total,
-                o.PaymentMethod))
+                o.PaymentMethod,
+                o.Payment.Status))
             .ToList();
+    }
+
+    private static PaymentResponse Payment(Order order, string businessName, string? upiId)
+    {
+        var payment = order.Payment;
+        var upi = order.IsUpiPayable && upiId is not null
+            ? new UpiPaymentResponse(upiId, businessName, order.Total, UpiLink.Build(upiId, businessName, order.Total, $"TowerHaat order #{order.OrderNo}"))
+            : null;
+
+        return new PaymentResponse(payment.Status, payment.Utr, payment.MarkedPaidAt, payment.SettledAt, payment.RefundedAt, payment.Note, upi);
     }
 
     private static DateTime? ExpiresAt(Order order) =>

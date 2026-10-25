@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using TowerHaat.Api.Auth;
 using TowerHaat.Application.Orders;
+using TowerHaat.Application.Payments;
 
 namespace TowerHaat.Api.Orders;
 
@@ -23,7 +24,10 @@ internal static class OrderEndpoints
         mine.MapPost("/{orderId:guid}/cancel", async (Guid orderId, ClaimsPrincipal user, OrderService orders, CancellationToken ct) =>
             TypedResults.Ok(await orders.CancelAsync(user.GetUserId(), orderId, ct)));
 
-        // B-05, B-06, B-07: orders placed with the owner's business.
+        mine.MapPost("/{orderId:guid}/paid", async (Guid orderId, MarkPaidRequest request, ClaimsPrincipal user, OrderService orders, CancellationToken ct) =>
+            TypedResults.Ok(await orders.MarkPaidAsync(user.GetUserId(), orderId, request, ct)));
+
+        // B-05, B-06, B-07, B-08: orders placed with the owner's business.
         var owner = app.MapGroup("/api/my/business").RequireAuthorization(AppClaims.ResidentPolicy);
 
         owner.MapGet("/orders", async (OwnerOrderTab? tab, ClaimsPrincipal user, OwnerOrderService orders, CancellationToken ct) =>
@@ -43,6 +47,9 @@ internal static class OrderEndpoints
 
         owner.MapPost("/orders/{orderId:guid}/cancel", async (Guid orderId, ReasonRequest request, ClaimsPrincipal user, OwnerOrderService orders, CancellationToken ct) =>
             TypedResults.Ok(await orders.CancelAsync(user.GetUserId(), orderId, request, ct)));
+
+        owner.MapPost("/orders/{orderId:guid}/payment", async (Guid orderId, PaymentActionRequest request, ClaimsPrincipal user, OwnerOrderService orders, CancellationToken ct) =>
+            TypedResults.Ok(await orders.UpdatePaymentAsync(user.GetUserId(), orderId, request, ct)));
 
         owner.MapGet("/prep-summary", async (ClaimsPrincipal user, OwnerOrderService orders, CancellationToken ct) =>
             TypedResults.Ok(await orders.PrepSummaryAsync(user.GetUserId(), ct)));

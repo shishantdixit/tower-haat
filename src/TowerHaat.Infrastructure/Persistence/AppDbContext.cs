@@ -45,6 +45,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
 
     public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
 
+    public DbSet<Payment> Payments => Set<Payment>();
+
     // Read by the query filter on every query, so the filter follows this context's society.
     private Guid? CurrentSocietyId => currentSociety.SocietyId;
 

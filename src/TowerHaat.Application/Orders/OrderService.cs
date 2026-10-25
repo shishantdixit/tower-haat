@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TowerHaat.Application.Abstractions;
 using TowerHaat.Application.Catalog;
 using TowerHaat.Application.Common;
+using TowerHaat.Application.Payments;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
 using TowerHaat.Domain.Orders;
@@ -106,6 +107,7 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
         await views.ExpireDueAsync(cancellationToken);
         var orders = await db.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payment)
             .Where(o => o.CustomerUserId == userId)
             .OrderByDescending(o => o.PlacedAt)
             .Take(50)
@@ -139,9 +141,30 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
         return await views.ToResponseAsync(order, cancellationToken);
     }
 
+    /// <summary>C-08: "I've paid", with the UPI transaction reference if the customer has it.</summary>
+    public async Task<OrderResponse> MarkPaidAsync(Guid userId, Guid orderId, MarkPaidRequest request, CancellationToken cancellationToken)
+    {
+        await views.ExpireDueAsync(cancellationToken);
+        var order = await FindMineAsync(userId, orderId, cancellationToken);
+        var utr = Validate.Utr(request.Utr);
+
+        try
+        {
+            order.MarkPaidByCustomer(utr, time.GetUtcNow().UtcDateTime);
+        }
+        catch (InvalidOperationException e)
+        {
+            throw new AppException(ErrorKind.Conflict, e.Message);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return await views.ToResponseAsync(order, cancellationToken);
+    }
+
     private async Task<Order> FindMineAsync(Guid userId, Guid orderId, CancellationToken cancellationToken) =>
         await db.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payment)
             .Include(o => o.History)
             .SingleOrDefaultAsync(o => o.Id == orderId && o.CustomerUserId == userId, cancellationToken)
         ?? throw new AppException(ErrorKind.NotFound, "Order not found.");
@@ -149,6 +172,7 @@ public sealed class OrderService(IAppDbContext db, ICurrentSociety society, Orde
     private Task<Order?> FindByIdempotencyKeyAsync(Guid userId, Guid key, CancellationToken cancellationToken) =>
         db.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payment)
             .Include(o => o.History)
             .SingleOrDefaultAsync(o => o.CustomerUserId == userId && o.IdempotencyKey == key, cancellationToken);
 

@@ -239,6 +239,28 @@ export type OrderStatus =
 
 export type PaymentMethod = 'Cod' | 'Upi';
 
+export type PaymentStatus =
+  'Pending' | 'CustomerMarkedPaid' | 'Confirmed' | 'Collected' | 'Disputed' | 'Refunded';
+
+export type PaymentAction = 'Confirm' | 'Collect' | 'Dispute' | 'Refund';
+
+export interface UpiPayment {
+  upiId: string;
+  payeeName: string;
+  amount: number;
+  link: string;
+}
+
+export interface Payment {
+  status: PaymentStatus;
+  utr: string | null;
+  markedPaidAt: string | null;
+  settledAt: string | null;
+  refundedAt: string | null;
+  note: string | null;
+  upi: UpiPayment | null;
+}
+
 export interface PlaceOrderRequest {
   businessId: string;
   items: { itemId: string; quantity: number }[];
@@ -283,6 +305,7 @@ export interface Order {
   deliveryCharge: number;
   total: number;
   paymentMethod: PaymentMethod;
+  payment: Payment;
   history: OrderStep[];
 }
 
@@ -301,6 +324,7 @@ export interface OrderSummary {
   itemsText: string;
   total: number;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
 }
 
 export type OwnerOrderTab = 'New' | 'Preparing' | 'OutForDelivery' | 'Done';

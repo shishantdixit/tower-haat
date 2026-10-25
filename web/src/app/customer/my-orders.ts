@@ -31,6 +31,14 @@ import { OrderStatusPipe, isOpen } from '../shared/order-status';
             <span class="muted small">{{ o.itemsText }}</span>
             <span class="row small">
               <span class="status">{{ o.status | orderStatus }}</span>
+              @if (
+                o.paymentMethod === 'Upi' &&
+                o.paymentStatus === 'Pending' &&
+                o.status !== 'Placed' &&
+                isOpen(o.status)
+              ) {
+                <span class="pay">· Pay by UPI</span>
+              }
               <span class="muted">· {{ o.placedAt | date: 'd MMM, h:mm a' : '+0530' }}</span>
             </span>
           </a>
@@ -54,6 +62,10 @@ import { OrderStatusPipe, isOpen } from '../shared/order-status';
     }
     .small {
       font-size: 0.875rem;
+    }
+    .pay {
+      color: var(--th-danger);
+      font-weight: 600;
     }
     .order.open .status {
       color: var(--th-primary);

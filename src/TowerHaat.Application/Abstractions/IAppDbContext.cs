@@ -40,6 +40,8 @@ public interface IAppDbContext
 
     DbSet<OrderStatusChange> OrderStatusChanges { get; }
 
+    DbSet<Payment> Payments { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Forgets unsaved new rows, so a failed save can be retried cleanly.</summary>
