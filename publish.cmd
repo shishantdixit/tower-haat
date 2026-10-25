@@ -28,9 +28,15 @@ if /i "%TARGET%"=="production" (set "ENV_NAME=Production") else (set "ENV_NAME=S
 rem Deploy settings: the site's Web Deploy publish profile from the MonsterASP panel saved as
 rem staging.PublishSettings / production.PublishSettings, or else publish.<target>.local.cmd.
 rem Both hold the password and are gitignored.
-set "PROFILE=%TARGET%.PublishSettings"
+rem Windows may have added .xml or .txt to the profile name while hiding extensions.
 set "SETTINGS=publish.%TARGET%.local.cmd"
-if exist "%PROFILE%" goto read_profile
+for %%E in (.PublishSettings .PublishSettings.xml .PublishSettings.txt) do (
+  if exist "%TARGET%%%E" (
+    set "PROFILE=%TARGET%%%E"
+    goto read_profile
+  )
+)
+set "PROFILE=%TARGET%.PublishSettings"
 if exist "%SETTINGS%" goto read_settings
 > "%SETTINGS%" (
   echo @rem Web Deploy settings for %TARGET%. Never commit this file.

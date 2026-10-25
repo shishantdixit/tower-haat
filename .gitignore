@@ -36,3 +36,5 @@ Thumbs.db
 *.PublishSettings
 *.publishsettings
 publish/
+*.PublishSettings.xml
+*.PublishSettings.txt
