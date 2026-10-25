@@ -31,6 +31,8 @@ if (args is ["generate-vapid-keys"])
     return;
 }
 
+StartupErrorLog.Register();
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddFileLogging();
 

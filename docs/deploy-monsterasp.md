@@ -110,6 +110,10 @@ never be committed. Options: `/skip-tests`, and `/self-contained` if the site sh
 Production asks you to type `yes` first. Needs the .NET SDK, Node.js and
 [Web Deploy](https://www.iis.net/downloads/microsoft/web-deploy) (`choco install webdeploy`).
 
+**If the site shows HTTP 500.30** (the app failed to start): open `App_Data/logs/startup-error.log`
+in the panel's File Manager. The last entry names the cause, usually a missing or short setting in
+`appsettings.Production.json` or a database that cannot be reached. Fix it, then restart the site.
+
 **If Web Deploy will not connect:** each run keeps the built app as an artifact for 30 days
 (*towerhaat-…* on the run's page). Download it, stop the site in the panel, upload the files with
 FTP over the old ones (keep `App_Data` and the settings file), and start the site again.
@@ -131,6 +135,6 @@ FTP over the old ones (keep `App_Data` and the settings file), and start the sit
 | --- | --- | --- |
 | `appsettings.Production.json` | secrets and settings | never touched |
 | `App_Data/uploads` | photos | never touched |
-| `App_Data/logs` | `app-*.log` (14 days), `errors-*.log` (60 days) | never touched |
+| `App_Data/logs` | `app-*.log` (14 days), `errors-*.log` (60 days), `startup-error.log` | never touched |
 | `App_Data/backups` | nightly database backups (14 days) | never touched |
 | everything else | the app | replaced |
