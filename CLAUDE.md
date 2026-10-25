@@ -43,14 +43,17 @@ web/                         Angular PWA
 
 - **Tenancy columns:** the spec's data model omits `SocietyId` on child tables; rule 1 above wins, so they get it.
 - **Images:** stored on disk behind `IFileStorage` (the spec's "Stored in S3" is superseded).
-- **Auto-expiry (M3):** IIS on MonsterASP can unload the app when idle, so expiry must not rely only on an in-process `BackgroundService`. Run it from a MonsterASP scheduled task calling a protected endpoint, and also treat a Placed order older than 30 minutes as Expired when it is read.
+- **Auto-expiry (M3):** IIS on MonsterASP can unload the app when idle, so expiry does not rely only on the in-process `OrderExpiryWorker`. A MonsterASP scheduled task calls `POST /api/jobs/expire-orders` with the `X-Job-Key` header (`Jobs:Key`, at least 32 characters; the endpoint is off without it), and `OrderViews.ExpireDueAsync` expires due orders of the society before any order is read. An expired order is stamped at its due time (placed + 30 minutes).
 - **SMS (until DLT approval):** `LoggingSmsSender` writes OTPs to the log; in Development the API also returns the code and the login screen shows it. Swap in a real `ISmsSender` before the pilot (M6); nothing else changes.
 - **Sessions:** 30-minute JWT access token kept in memory by the PWA; 60-day refresh token in an HTTP-only, Secure, SameSite=Strict cookie on `/api/auth`, rotated on every use, and reuse of a rotated token ends all the user's sessions.
 - **Platform admins:** phones listed in `Auth:AdminPhones` become admins when they sign in.
 - **Consent (DPDP):** asked at sign-up in M1 rather than M6, stored as `ResidentProfile.ConsentedAt`.
 - **Photos (M2):** resized in the browser (longest side 1600 px, JPEG) before upload; the server accepts JPEG, PNG or WebP up to 2 MB, checked by their first bytes, and stores them through `IFileStorage` (`DiskFileStorage` under `Storage:RootPath`, default `App_Data/uploads`). `/media/{key}` serves them publicly with a one-year cache, since image tags cannot send a token and keys are random.
 - **Businesses (M2):** one business per owner; Pending until a platform admin approves it; a rejected business goes back to Pending when the owner edits it; deactivated businesses cannot be edited. Settings (hours, last order time, minimum order, delivery charge) are columns on `Business`, not a separate table. Hours are daily, in Indian time, and may pass midnight; opening and closing at the same time means open all day.
-- **Sold out (M2 → M3):** `SoldToday.ForBusinessAsync` returns nothing sold until M3 counts today's order items there; daily limits and "sold out" already use it.
+- **Ordering (M3):** orders are placed only while the business is accepting orders (active, switched on, within hours, before the last order time); a preferred time may be later today or tomorrow, within opening hours and at least 15 minutes ahead. One business per cart, kept in the browser's localStorage. Order numbers are sequential per business. Daily limits count today's (India) order items except rejected, expired and cancelled ones (`SoldToday`). Customers cannot order from their own business.
+- **Live updates (M3 → M5):** order screens poll every 15 seconds while visible; M5 replaces this with SignalR and push.
+- **Rate limits:** only `/api/auth/otp` and `/api/auth/verify` are limited per IP (30 a minute), because a whole society may share one public IP and refresh runs on every app load. The PWA ends a session only when refresh returns 401.
+- **Entity ids:** generated in code, and every `Id` is configured `ValueGeneratedNever`, so EF inserts child rows added to a loaded parent (an order's history) instead of updating them.
 - **Payment statuses (M4):** include `Disputed` as an owner action alongside confirm, COD collected and refunded (B-08 omits it; the spec's payment table and edge cases include it).
 
 ## Conventions

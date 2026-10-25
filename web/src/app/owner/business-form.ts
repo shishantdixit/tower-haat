@@ -123,6 +123,7 @@ import { OwnerStore } from './owner-store';
       gap: 8px;
     }
     .type {
+      position: relative;
       display: flex;
       flex-direction: column;
       padding: 10px 12px;

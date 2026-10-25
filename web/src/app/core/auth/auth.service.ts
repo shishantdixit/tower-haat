@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthResponse, Me, OtpRequested, SaveProfileRequest } from '../api/models';
@@ -47,8 +47,11 @@ export class AuthService {
         this.session.set(response);
         return true;
       })
-      .catch(() => {
-        this.session.set(null);
+      .catch((error: unknown) => {
+        // Only a refused refresh ends the session; a network blip or rate limit leaves it alone.
+        if (error instanceof HttpErrorResponse && error.status === 401) {
+          this.session.set(null);
+        }
         return false;
       })
       .finally(() => (this.refreshing = null));

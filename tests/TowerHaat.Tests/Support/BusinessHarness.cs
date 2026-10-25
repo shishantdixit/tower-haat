@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using TowerHaat.Application.Businesses;
 using TowerHaat.Application.Catalog;
 using TowerHaat.Application.Directory;
+using TowerHaat.Application.Orders;
 using TowerHaat.Application.Tenancy;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Societies;
@@ -48,7 +49,9 @@ public sealed class BusinessHarness : IDisposable
         var user = new User($"+9198765{++_phones:D5}", DateTime.UtcNow);
         user.Rename($"Resident {_phones}");
         db.Users.Add(user);
-        db.ResidentProfiles.Add(new ResidentProfile(user.Id, society, DateTime.UtcNow));
+        var profile = new ResidentProfile(user.Id, society, DateTime.UtcNow);
+        profile.LiveInUnlistedFlat("A", $"{100 + _phones}");
+        db.ResidentProfiles.Add(profile);
         await db.SaveChangesAsync(Ct);
         return user.Id;
     }
@@ -90,13 +93,16 @@ public sealed class BusinessHarness : IDisposable
     {
         var db = Database.CreateContext(society);
         var owner = new OwnerBusinessService(db, society, Files, Time);
+        var views = new OrderViews(db, Time);
         return new Services(
             db,
             owner,
             new CatalogService(db, owner, Files, Time),
             new BusinessAdminService(db, society, Time),
             new BusinessTypeService(db),
-            new DirectoryService(db, society, Time));
+            new DirectoryService(db, society, Time),
+            new OrderService(db, society, views, Time),
+            new OwnerOrderService(db, views, Time));
     }
 
     public sealed record Services(
@@ -105,5 +111,7 @@ public sealed class BusinessHarness : IDisposable
         CatalogService Catalog,
         BusinessAdminService Admin,
         BusinessTypeService Types,
-        DirectoryService Directory);
+        DirectoryService Directory,
+        OrderService Orders,
+        OwnerOrderService OwnerOrders);
 }

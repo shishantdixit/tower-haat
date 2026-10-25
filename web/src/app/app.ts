@@ -21,7 +21,13 @@ import { AuthService } from './core/auth/auth.service';
     @if (auth.hasProfile() || auth.isPlatformAdmin()) {
       <nav class="tabs" aria-label="Areas">
         @if (auth.hasProfile()) {
-          <a routerLink="/customer" routerLinkActive="active">Shop</a>
+          <a
+            routerLink="/customer"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            >Shop</a
+          >
+          <a routerLink="/customer/orders" routerLinkActive="active">Orders</a>
           <a routerLink="/owner" routerLinkActive="active">My business</a>
         }
         @if (auth.isPlatformAdmin()) {
@@ -86,7 +92,8 @@ import { AuthService } from './core/auth/auth.service';
       border-radius: 0;
       background: none;
       color: var(--th-muted);
-      font-size: 0.9375rem;
+      font-size: 0.875rem;
+      white-space: nowrap;
       font-weight: 500;
       text-align: center;
       text-decoration: none;

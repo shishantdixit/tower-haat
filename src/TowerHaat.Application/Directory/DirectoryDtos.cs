@@ -32,6 +32,7 @@ public sealed record BusinessPage(
     decimal MinOrderValue,
     decimal DeliveryCharge,
     string? FssaiNumber,
+    bool AcceptsUpi,
     string WhatsAppUrl,
     bool IsOwnerPreview,
     IReadOnlyList<string> PhotoUrls,

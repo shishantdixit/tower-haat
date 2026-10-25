@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
+using TowerHaat.Domain.Orders;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
 
@@ -33,5 +34,14 @@ public interface IAppDbContext
 
     DbSet<CatalogItem> CatalogItems { get; }
 
+    DbSet<Order> Orders { get; }
+
+    DbSet<OrderItem> OrderItems { get; }
+
+    DbSet<OrderStatusChange> OrderStatusChanges { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Forgets unsaved new rows, so a failed save can be retried cleanly.</summary>
+    void DiscardPendingChanges();
 }

@@ -1,12 +1,21 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DirectoryApi } from '../core/api/business.api';
 import { errorMessage } from '../core/api/errors';
-import { BusinessPage as Page } from '../core/api/models';
+import { BusinessPage as Page, MenuItem } from '../core/api/models';
+import { CartService, MAX_QUANTITY } from '../core/cart/cart.service';
 import { RupeesPipe, Time12Pipe } from '../shared/formatting';
 import { VegMark } from '../shared/veg-mark';
 
-/** C-03 business page and C-04 menu with sold-out state. Ordering arrives in M3. */
+/** C-03 business page, C-04 menu with sold-out state, C-05 adding to the cart. */
 @Component({
   selector: 'app-business-page',
   imports: [RouterLink, RupeesPipe, Time12Pipe, VegMark],
@@ -100,12 +109,58 @@ import { VegMark } from '../shared/veg-mark';
                   <span class="few">Only {{ item.remainingToday }} left today</span>
                 }
               </div>
-              @if (item.photoUrl) {
-                <img [src]="item.photoUrl" alt="" loading="lazy" />
-              }
+              <div class="side">
+                @if (item.photoUrl) {
+                  <img [src]="item.photoUrl" alt="" loading="lazy" />
+                }
+                @if (p.isAcceptingOrders && !item.isSoldOut && !p.isOwnerPreview) {
+                  @let qty = quantity(item.id);
+                  @if (qty === 0) {
+                    <button type="button" class="add" (click)="add(p, item)">Add</button>
+                  } @else {
+                    <div class="stepper" role="group" [attr.aria-label]="item.name + ' quantity'">
+                      <button
+                        type="button"
+                        aria-label="Fewer"
+                        (click)="cart.setQuantity(item.id, qty - 1)"
+                      >
+                        −
+                      </button>
+                      <span>{{ qty }}</span>
+                      <button
+                        type="button"
+                        aria-label="More"
+                        [disabled]="qty >= limit(item)"
+                        (click)="cart.setQuantity(item.id, qty + 1)"
+                      >
+                        +
+                      </button>
+                    </div>
+                  }
+                }
+              </div>
             </div>
           }
         </div>
+        @if (!p.isAcceptingOrders && p.items.length) {
+          <p class="muted">
+            {{
+              p.isOpenNow
+                ? 'Not taking more orders today.'
+                : 'Closed now. Come back during opening hours to order.'
+            }}
+          </p>
+        }
+      }
+
+      @if (cartHere()) {
+        <a class="cart-bar" routerLink="/customer/checkout">
+          <span
+            >{{ cart.count() }} item{{ cart.count() === 1 ? '' : 's' }} ·
+            {{ cart.subtotal() | rupees }}</span
+          >
+          <strong>View cart →</strong>
+        </a>
       }
     } @else if (!error()) {
       <p class="muted">Loading…</p>
@@ -181,6 +236,53 @@ import { VegMark } from '../shared/veg-mark';
     .item .name {
       flex-wrap: nowrap;
     }
+    .side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .add {
+      min-width: 88px;
+      color: var(--th-primary);
+      border-color: var(--th-primary);
+    }
+    .stepper {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--th-primary);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .stepper button {
+      min-height: 40px;
+      width: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      color: var(--th-primary);
+      font-size: 1.25rem;
+    }
+    .stepper span {
+      min-width: 24px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .cart-bar {
+      position: sticky;
+      bottom: 64px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding: 14px var(--th-gap);
+      border-radius: var(--th-radius);
+      background: var(--th-primary);
+      color: var(--th-primary-contrast);
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+    }
     .item img {
       width: 96px;
       height: 96px;
@@ -212,11 +314,39 @@ import { VegMark } from '../shared/veg-mark';
 })
 export default class BusinessPage implements OnInit {
   private readonly api = inject(DirectoryApi);
+  protected readonly cart = inject(CartService);
 
   readonly businessId = input.required<string>();
 
   protected readonly page = signal<Page | null>(null);
   protected readonly error = signal<string | null>(null);
+
+  protected readonly cartHere = computed(
+    () => this.cart.count() > 0 && this.cart.cart()?.businessId === this.businessId(),
+  );
+
+  protected quantity(itemId: string): number {
+    return this.cart.quantity(itemId);
+  }
+
+  protected limit(item: MenuItem): number {
+    return Math.min(MAX_QUANTITY, item.remainingToday ?? MAX_QUANTITY);
+  }
+
+  protected add(page: Page, item: MenuItem): void {
+    if (
+      this.cart.belongsToAnother(page.id) &&
+      !confirm(
+        `Your cart has items from ${this.cart.cart()?.businessName}. Clear it and add this instead?`,
+      )
+    ) {
+      return;
+    }
+    this.cart.add(
+      { id: page.id, name: page.name },
+      { itemId: item.id, name: item.name, price: item.price, isVeg: item.isVeg },
+    );
+  }
 
   async ngOnInit(): Promise<void> {
     try {

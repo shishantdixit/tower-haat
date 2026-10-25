@@ -8,13 +8,17 @@ internal static class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth").RequireRateLimiting(RateLimitPolicy);
+        var group = app.MapGroup("/api/auth");
 
+        // Only code requests and checks are limited per IP. Refresh runs on every app load, and a
+        // whole society can share one public IP, so limiting it would sign people out.
         group.MapPost("/otp", async (RequestOtpRequest request, AuthService auth, CancellationToken ct) =>
-            TypedResults.Ok(await auth.RequestOtpAsync(request, ct)));
+                TypedResults.Ok(await auth.RequestOtpAsync(request, ct)))
+            .RequireRateLimiting(RateLimitPolicy);
 
         group.MapPost("/verify", async (VerifyOtpRequest request, AuthService auth, HttpResponse response, CancellationToken ct) =>
-            TypedResults.Ok(SignIn(response, await auth.VerifyOtpAsync(request, ct))));
+                TypedResults.Ok(SignIn(response, await auth.VerifyOtpAsync(request, ct))))
+            .RequireRateLimiting(RateLimitPolicy);
 
         group.MapPost("/refresh", async (HttpRequest request, AuthService auth, HttpResponse response, CancellationToken ct) =>
         {

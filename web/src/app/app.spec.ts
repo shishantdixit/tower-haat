@@ -48,6 +48,6 @@ describe('App', () => {
 
     expect(el.querySelector('.me')?.textContent).toContain('A-101');
     const tabs = Array.from(el.querySelectorAll('nav.tabs a')).map((a) => a.textContent?.trim());
-    expect(tabs).toEqual(['Shop', 'My business', 'Admin']);
+    expect(tabs).toEqual(['Shop', 'Orders', 'My business', 'Admin']);
   });
 });

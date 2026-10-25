@@ -18,6 +18,7 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
     // One admin phone per test that needs one, so OTP cooldowns do not collide.
     public const string AdminPhone = "+919999900000";
     public const string SecondAdminPhone = "+919999900001";
+    public const string JobKey = "test-job-key-0123456789abcdef0123456789";
 
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
@@ -37,6 +38,8 @@ public sealed class TowerHaatFactory : WebApplicationFactory<Program>
         builder.UseSetting("Auth:Otp:ExposeCodeInResponse", "true");
         builder.UseSetting("Auth:AdminPhones:0", "99999 00000");
         builder.UseSetting("Auth:AdminPhones:1", SecondAdminPhone);
+        builder.UseSetting("Jobs:Key", JobKey);
+        builder.UseSetting("Jobs:RunInProcess", "false");
 
         builder.ConfigureTestServices(services =>
         {

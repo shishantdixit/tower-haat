@@ -72,6 +72,14 @@ import { OwnerStore } from './owner-store';
 
         @if (b.status !== 'Deactivated') {
           <nav class="links">
+            @if (b.orderingEnabled && b.status === 'Active') {
+              <a routerLink="orders"
+                >Orders <span class="muted">New, preparing, out for delivery</span></a
+              >
+              <a routerLink="prep"
+                >Prep summary <span class="muted">What to make for today's orders</span></a
+              >
+            }
             @if (b.orderingEnabled) {
               <a routerLink="menu"
                 >Menu <span class="muted">Items, prices, today's availability</span></a

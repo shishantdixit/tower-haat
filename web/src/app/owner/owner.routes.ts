@@ -9,4 +9,7 @@ export default [
   { path: 'menu', loadComponent: () => import('./menu') },
   { path: 'menu/new', loadComponent: () => import('./item-form') },
   { path: 'menu/:itemId', loadComponent: () => import('./item-form') },
+  { path: 'orders', loadComponent: () => import('./orders') },
+  { path: 'orders/:orderId', loadComponent: () => import('./owner-order') },
+  { path: 'prep', loadComponent: () => import('./prep-summary') },
 ] satisfies Routes;

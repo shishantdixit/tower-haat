@@ -53,6 +53,20 @@ describe('AuthService', () => {
     expect(auth.signedIn()).toBe(false);
   });
 
+  it('keeps the session when refresh fails for another reason', async () => {
+    const verified = auth.verifyOtp('9876543210', '123456');
+    http.expectOne('/api/auth/verify').flush(authResponse());
+    await verified;
+
+    const refreshed = auth.refresh();
+    http
+      .expectOne('/api/auth/refresh')
+      .flush(null, { status: 429, statusText: 'Too Many Requests' });
+
+    expect(await refreshed).toBe(false);
+    expect(auth.signedIn()).toBe(true);
+  });
+
   it('clears the session on logout even if the server call fails', async () => {
     const verified = auth.verifyOtp('9876543210', '123456');
     http.expectOne('/api/auth/verify').flush(authResponse());

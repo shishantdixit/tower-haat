@@ -135,6 +135,20 @@ public sealed class AuthFlowTests(TowerHaatFactory factory) : IClassFixture<Towe
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Refreshing_often_is_not_rate_limited()
+    {
+        // Every app load refreshes; a whole society may share one IP.
+        var client = factory.CreateHttpsClient();
+        await SignInAsync(client, "+919876566666");
+
+        for (var i = 0; i < 40; i++)
+        {
+            var response = await client.PostAsync("/api/auth/refresh", null, _ct);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+    }
+
     private async Task<OtpRequestedResponse> RequestOtpAsync(HttpClient client, string phone)
     {
         var response = await client.PostAsJsonAsync("/api/auth/otp", new RequestOtpRequest(phone), _ct);

@@ -4,6 +4,7 @@ using TowerHaat.Domain.Auth;
 using TowerHaat.Domain.Businesses;
 using TowerHaat.Domain.Catalog;
 using TowerHaat.Domain.Common;
+using TowerHaat.Domain.Orders;
 using TowerHaat.Domain.Societies;
 using TowerHaat.Domain.Users;
 
@@ -38,6 +39,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
 
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
 
+    public DbSet<Order> Orders => Set<Order>();
+
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
+
     // Read by the query filter on every query, so the filter follows this context's society.
     private Guid? CurrentSocietyId => currentSociety.SocietyId;
 
@@ -47,6 +54,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
+            // Ids come from Entity (Guid v7), never the database. Saying so lets EF add new child rows
+            // reached through a loaded parent (an order's history) instead of treating them as updates.
+            if (typeof(Entity).IsAssignableFrom(entityType.ClrType) && entityType.BaseType is null)
+            {
+                modelBuilder.Entity(entityType.ClrType).Property(nameof(Entity.Id)).ValueGeneratedNever();
+            }
+
             if (typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType) && entityType.BaseType is null)
             {
                 ConfigureTenantMethod.MakeGenericMethod(entityType.ClrType).Invoke(this, [modelBuilder]);
@@ -62,6 +76,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentSociet
 
         // Rupees with paise; the same precision on every provider.
         configurationBuilder.Properties<decimal>().HavePrecision(10, 2);
+    }
+
+    public void DiscardPendingChanges()
+    {
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added).ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

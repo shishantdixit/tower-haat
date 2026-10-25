@@ -25,7 +25,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       return from(auth.refresh()).pipe(
         switchMap((renewed) => {
           if (!renewed) {
-            void router.navigate(['/login']);
+            if (!auth.signedIn()) {
+              void router.navigate(['/login']);
+            }
             return throwError(() => error);
           }
           return next(withToken(request));

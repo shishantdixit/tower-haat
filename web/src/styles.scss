@@ -96,7 +96,8 @@ h2 {
   }
 }
 
-input:not([type='checkbox']),
+// Text-like inputs only: checkboxes and radios keep their own size.
+input:not([type='checkbox'], [type='radio']),
 select,
 textarea {
   width: 100%;

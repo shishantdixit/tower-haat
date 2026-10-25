@@ -219,8 +219,106 @@ export interface BusinessPage {
   minOrderValue: number;
   deliveryCharge: number;
   fssaiNumber: string | null;
+  acceptsUpi: boolean;
   whatsAppUrl: string;
   isOwnerPreview: boolean;
   photoUrls: string[];
   items: MenuItem[];
+}
+
+export type OrderStatus =
+  | 'Placed'
+  | 'Accepted'
+  | 'Preparing'
+  | 'OutForDelivery'
+  | 'Delivered'
+  | 'Rejected'
+  | 'Expired'
+  | 'CancelledByCustomer'
+  | 'CancelledByOwner';
+
+export type PaymentMethod = 'Cod' | 'Upi';
+
+export interface PlaceOrderRequest {
+  businessId: string;
+  items: { itemId: string; quantity: number }[];
+  note: string | null;
+  preferredDay: 'today' | 'tomorrow' | null;
+  preferredTime: string | null;
+  paymentMethod: PaymentMethod;
+  idempotencyKey: string;
+}
+
+export interface OrderLine {
+  name: string;
+  price: number;
+  quantity: number;
+  isVeg: boolean | null;
+  lineTotal: number;
+}
+
+export interface OrderStep {
+  status: OrderStatus;
+  reason: string | null;
+  at: string;
+}
+
+export interface Order {
+  id: string;
+  orderNo: number;
+  businessId: string;
+  businessName: string;
+  businessWhatsAppUrl: string;
+  status: OrderStatus;
+  placedAt: string;
+  expiresAt: string | null;
+  preferredTime: string | null;
+  note: string | null;
+  customerName: string;
+  customerPhone: string;
+  tower: string;
+  flat: string;
+  items: OrderLine[];
+  subtotal: number;
+  deliveryCharge: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  history: OrderStep[];
+}
+
+export interface OrderSummary {
+  id: string;
+  orderNo: number;
+  businessId: string;
+  businessName: string;
+  status: OrderStatus;
+  placedAt: string;
+  expiresAt: string | null;
+  preferredTime: string | null;
+  customerName: string;
+  tower: string;
+  flat: string;
+  itemsText: string;
+  total: number;
+  paymentMethod: PaymentMethod;
+}
+
+export type OwnerOrderTab = 'New' | 'Preparing' | 'OutForDelivery' | 'Done';
+
+export interface OwnerOrders {
+  counts: Record<OwnerOrderTab, number>;
+  orders: OrderSummary[];
+}
+
+export interface PrepLine {
+  name: string;
+  isVeg: boolean | null;
+  toPrepare: number;
+  awaitingAcceptance: number;
+}
+
+export interface PrepSummary {
+  ordersToPrepare: number;
+  ordersAwaitingAcceptance: number;
+  items: PrepLine[];
 }

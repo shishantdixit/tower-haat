@@ -10,7 +10,9 @@ using TowerHaat.Api.Businesses;
 using TowerHaat.Api.Directory;
 using TowerHaat.Api.Errors;
 using TowerHaat.Api.Health;
+using TowerHaat.Api.Jobs;
 using TowerHaat.Api.Media;
+using TowerHaat.Api.Orders;
 using TowerHaat.Api.Residents;
 using TowerHaat.Api.Societies;
 using TowerHaat.Api.Tenancy;
@@ -47,6 +49,9 @@ builder.Services.AddOptions<JwtOptions>()
 
 builder.Services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
+builder.Services.AddOptions<JobOptions>().Bind(builder.Configuration.GetSection(JobOptions.Section));
+builder.Services.AddHostedService<OrderExpiryWorker>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
@@ -68,13 +73,14 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AppClaims.PlatformAdminPolicy, policy => policy.RequireRole(AppClaims.PlatformAdminRole))
     .AddPolicy(AppClaims.ResidentPolicy, policy => policy.RequireClaim(AppClaims.SocietyId));
 
-// Per-IP limit on sign-in endpoints, on top of the per-phone OTP limits in AuthService.
+// Per-IP limit on requesting and checking codes, on top of the per-phone OTP limits in AuthService.
+// Generous, because flats in a society often share one public IP.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(AuthEndpoints.RateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
 });
 
 var app = builder.Build();
@@ -100,6 +106,8 @@ app.MapBusinessTypeEndpoints();
 app.MapOwnerBusinessEndpoints();
 app.MapAdminBusinessEndpoints();
 app.MapDirectoryEndpoints();
+app.MapOrderEndpoints();
+app.MapJobEndpoints();
 app.MapMediaEndpoints();
 
 // Angular routes get index.html; files (nonfile) and unknown /api and /media routes stay 404.

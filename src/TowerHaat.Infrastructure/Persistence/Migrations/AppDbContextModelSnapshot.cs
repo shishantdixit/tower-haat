@@ -26,7 +26,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Auth.OtpRequest", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Attempts")
@@ -61,7 +60,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -97,7 +95,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Businesses.Business", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ApprovedAt")
@@ -193,7 +190,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Businesses.BusinessPhoto", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BusinessId")
@@ -222,7 +218,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Businesses.BusinessType", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
@@ -300,7 +295,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Businesses.Category", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BusinessTypeId")
@@ -466,7 +460,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Catalog.CatalogItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BusinessId")
@@ -519,10 +512,174 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                     b.ToTable("CatalogItems");
                 });
 
+            modelBuilder.Entity("TowerHaat.Domain.Orders.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.Property<Guid>("CustomerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DeliveryCharge")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Flat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("OrderNo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PlacedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PreferredTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StatusChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Tower")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SocietyId");
+
+                    b.HasIndex("BusinessId", "OrderNo")
+                        .IsUnique();
+
+                    b.HasIndex("BusinessId", "Status");
+
+                    b.HasIndex("CustomerUserId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "PlacedAt");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Orders.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CatalogItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool?>("IsVegSnapshot")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("NameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PriceSnapshot")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatalogItemId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SocietyId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Orders.OrderStatusChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid>("SocietyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SocietyId");
+
+                    b.ToTable("OrderStatusChanges");
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Number")
@@ -549,7 +706,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Societies.Society", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("City")
@@ -585,7 +741,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
@@ -609,7 +764,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Users.ResidentProfile", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ConsentedAt")
@@ -647,7 +801,6 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -751,6 +904,57 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TowerHaat.Domain.Orders.Order", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Businesses.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Orders.OrderItem", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Orders.Order", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Orders.OrderStatusChange", b =>
+                {
+                    b.HasOne("TowerHaat.Domain.Orders.Order", null)
+                        .WithMany("History")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TowerHaat.Domain.Societies.Society", null)
+                        .WithMany()
+                        .HasForeignKey("SocietyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TowerHaat.Domain.Societies.Flat", b =>
                 {
                     b.HasOne("TowerHaat.Domain.Societies.Society", null)
@@ -802,6 +1006,13 @@ namespace TowerHaat.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TowerHaat.Domain.Businesses.Business", b =>
                 {
                     b.Navigation("Photos");
+                });
+
+            modelBuilder.Entity("TowerHaat.Domain.Orders.Order", b =>
+                {
+                    b.Navigation("History");
+
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("TowerHaat.Domain.Societies.Tower", b =>

@@ -22,6 +22,7 @@ Set these per environment (MonsterASP app settings or environment variables), ne
 - `Jwt__SigningKey`: random, at least 32 characters
 - `Auth__Otp__HashKey`: random, at least 32 characters
 - `Auth__AdminPhones__0`: your number
+- `Jobs__Key`: random, at least 32 characters. Create a MonsterASP scheduled task that every 5 minutes sends `POST https://towerhaat.com/api/jobs/expire-orders` with the header `X-Job-Key: <the key>`; it expires orders nobody accepted within 30 minutes and wakes the site if IIS unloaded it.
 - `Storage__RootPath`: optional; folder for uploaded photos (default `App_Data/uploads` under the site). Include it in backups.
 
 ## Local setup
